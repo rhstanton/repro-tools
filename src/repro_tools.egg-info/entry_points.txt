@@ -1,0 +1,3 @@
+[console_scripts]
+repro-publish = repro_tools.cli:publish
+repro-record = repro_tools.cli:record_provenance

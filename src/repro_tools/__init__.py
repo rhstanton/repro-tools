@@ -8,6 +8,8 @@ to ensure full reproducibility.
 
 from repro_tools.core import (
     auto_build_record,
+    auto_provenance_from_config,
+    enable_auto_provenance,
     git_state,
     now_utc_iso,
     sha256_file,
@@ -30,6 +32,8 @@ __all__ = [
     "now_utc_iso",
     "write_build_record",
     "auto_build_record",
+    "auto_provenance_from_config",
+    "enable_auto_provenance",
     # Publishing
     "publish_analyses",
     "publish_files",
