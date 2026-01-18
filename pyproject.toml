@@ -84,11 +84,5 @@ exclude_lines = [
 python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
-files = ["src/repro_tools"]
-
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
 disallow_untyped_defs = false
+files = ["src/repro_tools"]
