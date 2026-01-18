@@ -1,9 +1,8 @@
 """
 repro-tools: Reproducibility tools for research and teaching.
 
-Provides provenance tracking and publishing infrastructure for computational
-research projects. Tracks git state, input/output checksums, and build metadata
-to ensure full reproducibility.
+Provides provenance tracking, publishing infrastructure, and quality assurance
+tools for computational research projects.
 """
 
 from repro_tools.core import (
@@ -22,8 +21,9 @@ from repro_tools.publish import (
     publish_files,
     save_yml,
 )
+from repro_tools.compare import compare_outputs
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     # Core provenance
@@ -40,4 +40,6 @@ __all__ = [
     "load_yml",
     "save_yml",
     "copy_if_changed",
+    # Comparison
+    "compare_outputs",
 ]
