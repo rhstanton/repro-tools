@@ -251,6 +251,7 @@ def auto_provenance_from_config(artifact_name: str) -> None:
         
         if artifact_name not in config.ANALYSES:
             print(f"Warning: Unknown analysis '{artifact_name}', skipping provenance", file=sys.stderr)
+            print(f"  Available analyses: {', '.join(config.ANALYSES.keys())}", file=sys.stderr)
             return
         
         analysis_cfg = config.ANALYSES[artifact_name]
@@ -266,6 +267,10 @@ def auto_provenance_from_config(artifact_name: str) -> None:
         
         _provenance_recorded = True
         
+    except ImportError as e:
+        print(f"Warning: enable_auto_provenance requires config.py with ANALYSES dictionary", file=sys.stderr)
+        print(f"  For standalone scripts, use auto_build_record() instead", file=sys.stderr)
+        print(f"  See: repro-tools documentation", file=sys.stderr)
     except Exception as e:
         print(f"Warning: Failed to record provenance: {e}", file=sys.stderr)
 

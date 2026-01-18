@@ -39,7 +39,7 @@ def publish():
     analyses_parser = subparsers.add_parser("analyses", help="Publish all outputs from analyses")
     analyses_parser.add_argument("analyses", nargs="+", help="Analysis names to publish")
     analyses_parser.add_argument("--paper-root", type=Path, required=True, help="Paper directory")
-    analyses_parser.add_argument("--output-root", type=Path, required=True, help="Output directory")
+    analyses_parser.add_argument("--project-root", type=Path, required=True, help="Project/analysis repository root")
     analyses_parser.add_argument("--allow-dirty", type=int, default=0, help="Allow dirty working tree")
     analyses_parser.add_argument("--require-not-behind", type=int, default=1, help="Require branch up-to-date")
     analyses_parser.add_argument("--require-current-head", type=int, default=0, help="Require artifacts from current HEAD")
@@ -48,30 +48,28 @@ def publish():
     files_parser = subparsers.add_parser("files", help="Publish specific files")
     files_parser.add_argument("files", nargs="+", type=Path, help="Files to publish")
     files_parser.add_argument("--paper-root", type=Path, required=True, help="Paper directory")
-    files_parser.add_argument("--output-root", type=Path, required=True, help="Output directory")
+    files_parser.add_argument("--project-root", type=Path, required=True, help="Project/analysis repository root")
     files_parser.add_argument("--allow-dirty", type=int, default=0, help="Allow dirty working tree")
     files_parser.add_argument("--require-not-behind", type=int, default=1, help="Require branch up-to-date")
-    files_parser.add_argument("--require-current-head", type=int, default=0, help="Require artifacts from current HEAD")
     
     args = parser.parse_args()
     
     if args.mode == "analyses":
         publish_analyses(
+            project_root=args.project_root,
             paper_root=args.paper_root,
-            output_root=args.output_root,
-            analyses=args.analyses,
+            analysis_names=args.analyses,
             allow_dirty=bool(args.allow_dirty),
             require_not_behind=bool(args.require_not_behind),
             require_current_head=bool(args.require_current_head),
         )
     else:  # files
         publish_files(
+            project_root=args.project_root,
             paper_root=args.paper_root,
-            output_root=args.output_root,
-            files=args.files,
+            file_paths=args.files,
             allow_dirty=bool(args.allow_dirty),
             require_not_behind=bool(args.require_not_behind),
-            require_current_head=bool(args.require_current_head),
         )
 
 
