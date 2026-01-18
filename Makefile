@@ -1,7 +1,5 @@
 # Simple Makefile for repro-tools development
 
-.DEFAULT_GOAL := all
-
 ENV_DIR := .env
 CONDA := conda
 
@@ -9,13 +7,14 @@ CONDA := conda
 
 help:
 	@echo "Available targets:"
-	@echo "  make all    - Set up environment and run tests (default)"
+	@echo "  make help   - Show this help message (default)"
+	@echo "  make all    - Set up environment and run tests"
 	@echo "  make env    - Create/update conda environment and install package"
 	@echo "  make test   - Run all tests"
 	@echo "  make test-q - Run tests (quiet)"
 	@echo "  make clean  - Remove environment and build artifacts"
 
-# Default target: set up and test
+# Set up and test
 all: env test
 
 # Create conda environment in .env/ and install package in editable mode
