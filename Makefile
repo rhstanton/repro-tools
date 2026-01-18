@@ -1,5 +1,7 @@
 # Simple Makefile for repro-tools development
 
+.DEFAULT_GOAL := all
+
 ENV_DIR := .env
 CONDA := conda
 
