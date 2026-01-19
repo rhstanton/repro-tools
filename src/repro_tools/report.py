@@ -36,17 +36,17 @@ def format_timestamp(ts_str):
 
 class ReplicationReportGenerator:
     """Generate replication report."""
-    
+
     def __init__(self, repo_root, output_file, format="html"):
         self.repo_root = Path(repo_root)
         self.output_file = Path(output_file)
         self.format = format
         self.content = []
-    
+
     def generate(self):
         """Generate complete report."""
         print(f"Generating replication report...")
-        
+
         self.add_header()
         self.add_overview()
         self.add_system_info()
@@ -55,16 +55,17 @@ class ReplicationReportGenerator:
         self.add_provenance_details()
         self.add_verification_commands()
         self.add_footer()
-        
+
         self.write_report()
         print(f"✅ Report generated: {self.output_file}")
-    
+
     def add_header(self):
         """Add report header."""
         generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        
+
         if self.format == "html":
-            self.content.append(f"""<!DOCTYPE html>
+            self.content.append(
+                f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -91,21 +92,25 @@ class ReplicationReportGenerator:
 <body>
     <h1>🔬 Replication Package Report</h1>
     <p class="meta">Generated: {generated_at}</p>
-""")
+"""
+            )
         else:  # markdown
-            self.content.append(f"""# Replication Package Report
+            self.content.append(
+                f"""# Replication Package Report
 
 **Generated:** {generated_at}
 
 ---
 
-""")
-    
+"""
+            )
+
     def add_overview(self):
         """Add overview section."""
         # Get git info
         try:
             import subprocess
+
             result = subprocess.run(
                 ["git", "rev-parse", "HEAD"],
                 capture_output=True,
@@ -113,7 +118,7 @@ class ReplicationReportGenerator:
                 cwd=self.repo_root,
             )
             commit = result.stdout.strip() if result.returncode == 0 else "N/A"
-            
+
             result = subprocess.run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
                 capture_output=True,
@@ -124,9 +129,10 @@ class ReplicationReportGenerator:
         except:
             commit = "N/A"
             branch = "N/A"
-        
+
         if self.format == "html":
-            self.content.append(f"""
+            self.content.append(
+                f"""
     <h2>📋 Overview</h2>
     <table>
         <tr><th>Property</th><th>Value</th></tr>
@@ -134,43 +140,51 @@ class ReplicationReportGenerator:
         <tr><td>Git Commit</td><td><code>{commit}</code></td></tr>
         <tr><td>Git Branch</td><td><code>{branch}</code></td></tr>
     </table>
-""")
+"""
+            )
         else:
-            self.content.append(f"""## Overview
+            self.content.append(
+                f"""## Overview
 
 - **Repository:** {self.repo_root.name}
 - **Git Commit:** `{commit}`
 - **Git Branch:** `{branch}`
 
-""")
-    
+"""
+            )
+
     def add_system_info(self):
         """Add system information."""
         system_info_file = self.repo_root / "output" / "system_info.yml"
-        
+
         if not system_info_file.exists():
             if self.format == "html":
-                self.content.append(f"""
+                self.content.append(
+                    f"""
     <h2>💻 Computational Environment</h2>
     <p class="warning">⚠️ System info not available. Run: make system-info</p>
-""")
+"""
+                )
             else:
-                self.content.append(f"""## Computational Environment
+                self.content.append(
+                    f"""## Computational Environment
 
 ⚠️ System info not available. Run: `make system-info`
 
-""")
+"""
+                )
             return
-        
+
         system_info = load_yaml_safe(system_info_file)
-        
+
         if "error" in system_info:
             return
-        
+
         sys_data = system_info.get("system", {})
-        
+
         if self.format == "html":
-            self.content.append(f"""
+            self.content.append(
+                f"""
     <h2>💻 Computational Environment</h2>
     <table>
         <tr><th>Component</th><th>Version/Details</th></tr>
@@ -184,9 +198,11 @@ class ReplicationReportGenerator:
         <summary>View installed packages ({len(system_info.get('python_packages', {}))} packages)</summary>
         <pre>{yaml.dump(system_info.get('python_packages', {}), default_flow_style=False)}</pre>
     </details>
-""")
+"""
+            )
         else:
-            self.content.append(f"""## Computational Environment
+            self.content.append(
+                f"""## Computational Environment
 
 - **Operating System:** {sys_data.get('os', 'N/A')}
 - **Architecture:** {sys_data.get('architecture', 'N/A')}
@@ -198,149 +214,177 @@ class ReplicationReportGenerator:
 {yaml.dump(system_info.get('python_packages', {}), default_flow_style=False)}
 ```
 
-""")
-    
+"""
+            )
+
     def add_data_info(self):
         """Add data information."""
         checksums_file = self.repo_root / "data" / "CHECKSUMS.txt"
-        
+
         if not checksums_file.exists():
             return
-        
+
         with open(checksums_file) as f:
-            lines = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-        
+            lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
         if self.format == "html":
-            self.content.append(f"""
+            self.content.append(
+                f"""
     <h2>📊 Data Files</h2>
     <table>
         <tr><th>File</th><th>SHA256 Checksum</th></tr>
-""")
+"""
+            )
             for line in lines:
                 parts = line.split()
                 if len(parts) >= 2:
                     checksum = parts[0]
-                    filename = ' '.join(parts[1:])
-                    self.content.append(f"""        <tr><td><code>{filename}</code></td><td class="checksum">{checksum[:16]}...</td></tr>\n""")
-            
-            self.content.append("""    </table>
-""")
+                    filename = " ".join(parts[1:])
+                    self.content.append(
+                        f"""        <tr><td><code>{filename}</code></td><td class="checksum">{checksum[:16]}...</td></tr>\n"""
+                    )
+
+            self.content.append(
+                """    </table>
+"""
+            )
         else:
-            self.content.append(f"""## Data Files
+            self.content.append(
+                f"""## Data Files
 
 | File | SHA256 Checksum |
 |------|----------------|
-""")
+"""
+            )
             for line in lines:
                 parts = line.split()
                 if len(parts) >= 2:
                     checksum = parts[0]
-                    filename = ' '.join(parts[1:])
+                    filename = " ".join(parts[1:])
                     self.content.append(f"""| `{filename}` | `{checksum[:16]}...` |\n""")
-            
+
             self.content.append("\n")
-    
+
     def add_artifacts_info(self):
         """Add artifacts information."""
         prov_dir = self.repo_root / "output" / "provenance"
-        
+
         if not prov_dir.exists():
             return
-        
+
         prov_files = sorted(prov_dir.glob("*.yml"))
-        
+
         if self.format == "html":
-            self.content.append(f"""
+            self.content.append(
+                f"""
     <h2>📦 Artifacts ({len(prov_files)} total)</h2>
     <table>
         <tr><th>Artifact</th><th>Built</th><th>Figure</th><th>Table</th></tr>
-""")
+"""
+            )
             for prov_file in prov_files:
                 data = load_yaml_safe(prov_file)
                 artifact = prov_file.stem
-                built_at = format_timestamp(data.get('built_at_utc', 'N/A'))
-                
+                built_at = format_timestamp(data.get("built_at_utc", "N/A"))
+
                 fig_path = self.repo_root / "output" / "figures" / f"{artifact}.pdf"
                 tbl_path = self.repo_root / "output" / "tables" / f"{artifact}.tex"
-                
+
                 fig_status = "✅" if fig_path.exists() else "❌"
                 tbl_status = "✅" if tbl_path.exists() else "❌"
-                
-                self.content.append(f"""        <tr>
+
+                self.content.append(
+                    f"""        <tr>
             <td><code>{artifact}</code></td>
             <td>{built_at}</td>
             <td>{fig_status}</td>
             <td>{tbl_status}</td>
         </tr>
-""")
-            
-            self.content.append("""    </table>
-""")
+"""
+                )
+
+            self.content.append(
+                """    </table>
+"""
+            )
         else:
-            self.content.append(f"""## Artifacts ({len(prov_files)} total)
+            self.content.append(
+                f"""## Artifacts ({len(prov_files)} total)
 
 | Artifact | Built | Figure | Table |
 |----------|-------|--------|-------|
-""")
+"""
+            )
             for prov_file in prov_files:
                 data = load_yaml_safe(prov_file)
                 artifact = prov_file.stem
-                built_at = format_timestamp(data.get('built_at_utc', 'N/A'))
-                
+                built_at = format_timestamp(data.get("built_at_utc", "N/A"))
+
                 fig_path = self.repo_root / "output" / "figures" / f"{artifact}.pdf"
                 tbl_path = self.repo_root / "output" / "tables" / f"{artifact}.tex"
-                
+
                 fig_status = "✅" if fig_path.exists() else "❌"
                 tbl_status = "✅" if tbl_path.exists() else "❌"
-                
-                self.content.append(f"""| `{artifact}` | {built_at} | {fig_status} | {tbl_status} |\n""")
-            
+
+                self.content.append(
+                    f"""| `{artifact}` | {built_at} | {fig_status} | {tbl_status} |\n"""
+                )
+
             self.content.append("\n")
-    
+
     def add_provenance_details(self):
         """Add detailed provenance for each artifact."""
         prov_dir = self.repo_root / "output" / "provenance"
-        
+
         if not prov_dir.exists():
             return
-        
+
         prov_files = sorted(prov_dir.glob("*.yml"))
-        
+
         if self.format == "html":
-            self.content.append(f"""
+            self.content.append(
+                f"""
     <h2>📋 Detailed Provenance</h2>
-""")
+"""
+            )
             for prov_file in prov_files:
                 data = load_yaml_safe(prov_file)
                 artifact = prov_file.stem
-                
-                self.content.append(f"""
+
+                self.content.append(
+                    f"""
     <h3>{artifact}</h3>
     <details>
         <summary>View provenance details</summary>
         <pre>{yaml.dump(data, default_flow_style=False, sort_keys=False)}</pre>
     </details>
-""")
+"""
+                )
         else:
-            self.content.append(f"""## Detailed Provenance
+            self.content.append(
+                f"""## Detailed Provenance
 
-""")
+"""
+            )
             for prov_file in prov_files:
                 data = load_yaml_safe(prov_file)
                 artifact = prov_file.stem
-                
-                self.content.append(f"""### {artifact}
+
+                self.content.append(
+                    f"""### {artifact}
 
 ```yaml
 {yaml.dump(data, default_flow_style=False, sort_keys=False)}
 ```
 
-""")
-    
+"""
+                )
+
     def add_verification_commands(self):
         """Add verification commands."""
         if self.format == "html":
-            self.content.append(f"""
+            self.content.append(
+                f"""
     <h2>✅ Verification Commands</h2>
     <p>Run these commands to verify the replication package:</p>
     
@@ -361,9 +405,11 @@ class ReplicationReportGenerator:
     
     <h3>6. Verify Data Checksums</h3>
     <pre>cd data && sha256sum -c CHECKSUMS.txt</pre>
-""")
+"""
+            )
         else:
-            self.content.append(f"""## Verification Commands
+            self.content.append(
+                f"""## Verification Commands
 
 Run these commands to verify the replication package:
 
@@ -397,27 +443,32 @@ make test
 cd data && sha256sum -c CHECKSUMS.txt
 ```
 
-""")
-    
+"""
+            )
+
     def add_footer(self):
         """Add report footer."""
         if self.format == "html":
-            self.content.append(f"""
+            self.content.append(
+                f"""
     <hr>
     <p class="meta">Report generated by generate_replication_report.py</p>
 </body>
 </html>
-""")
+"""
+            )
         else:
-            self.content.append(f"""---
+            self.content.append(
+                f"""---
 
 *Report generated by generate_replication_report.py*
-""")
-    
+"""
+            )
+
     def write_report(self):
         """Write report to file."""
-        with open(self.output_file, 'w') as f:
-            f.write(''.join(self.content))
+        with open(self.output_file, "w") as f:
+            f.write("".join(self.content))
 
 
 def main():
@@ -440,21 +491,21 @@ def main():
         help="Repository root directory",
     )
     args = parser.parse_args()
-    
+
     if not args.output:
         ext = "html" if args.format == "html" else "md"
         args.output = args.repo_root / "output" / f"replication_report.{ext}"
-    
+
     # Ensure output directory exists
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    
+
     generator = ReplicationReportGenerator(
         args.repo_root,
         args.output,
         format=args.format,
     )
     generator.generate()
-    
+
     print()
     print(f"View report: {args.output}")
     if args.format == "html":

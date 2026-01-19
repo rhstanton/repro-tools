@@ -29,7 +29,7 @@ def save_yml(path: Path, obj: Dict[str, Any]) -> None:
 def copy_if_changed(src: Path, dst: Path) -> bool:
     """
     Copy src -> dst if dst missing or content differs.
-    
+
     Returns:
         True if file was copied, False if already up-to-date
     """
@@ -48,15 +48,15 @@ def check_git_policy(
 ) -> Dict[str, Any]:
     """
     Enforce git safety checks.
-    
+
     Args:
         repo_root: Git repository root
         allow_dirty: Allow publishing from dirty working tree
         require_not_behind: Require branch not behind upstream
-    
+
     Returns:
         Git state dictionary
-        
+
     Raises:
         SystemExit: If policy checks fail
     """
@@ -89,12 +89,12 @@ def check_artifacts_from_clean_tree(
 ) -> None:
     """
     Verify artifacts were built from a clean working tree.
-    
+
     Args:
         artifact_names: List of artifact names to check
         prov_dir: Directory containing provenance files
         allow_dirty: Allow artifacts built from dirty tree
-        
+
     Raises:
         SystemExit: If artifacts were built dirty and allow_dirty=False
     """
@@ -106,7 +106,7 @@ def check_artifacts_from_clean_tree(
             git_info = meta.get("git", {})
             if git_info.get("dirty", False):
                 dirty_artifacts.append(name)
-    
+
     if dirty_artifacts and not allow_dirty:
         msg = "Refusing to publish: artifacts were built from a dirty working tree:\n"
         for name in dirty_artifacts:
@@ -123,12 +123,12 @@ def check_artifacts_from_current_head(
 ) -> None:
     """
     Verify all artifacts were built from current HEAD commit.
-    
+
     Args:
         artifact_names: List of artifact names to check
         prov_dir: Directory containing provenance files
         current_commit: Current HEAD commit SHA
-        
+
     Raises:
         SystemExit: If artifacts not from current HEAD
     """
@@ -141,7 +141,7 @@ def check_artifacts_from_current_head(
             artifact_commit = git_info.get("commit", "")
             if artifact_commit and artifact_commit != current_commit:
                 stale.append((name, artifact_commit[:7], current_commit[:7]))
-    
+
     if stale:
         msg = "Refusing to publish: artifacts not built from current HEAD:\n"
         for name, old, new in stale:
@@ -163,7 +163,7 @@ def publish_analyses(
 ) -> Dict[str, Any]:
     """
     Publish complete analyses (all outputs per analysis).
-    
+
     Args:
         project_root: Root of analysis repository
         paper_root: Root of paper repository
@@ -173,73 +173,67 @@ def publish_analyses(
         require_not_behind: Require branch not behind upstream
         require_current_head: Require artifacts from current HEAD
         verbose: Print status messages
-        
+
     Returns:
         Updated provenance dictionary
     """
     if kinds is None:
         kinds = ["figures", "tables"]
-    
+
     # Check git policy
     gitinfo = check_git_policy(
         project_root,
         allow_dirty=allow_dirty,
         require_not_behind=require_not_behind,
     )
-    
+
     # Check artifacts
     out_prov_dir = project_root / "output" / "provenance"
-    
-    check_artifacts_from_clean_tree(
-        analysis_names, out_prov_dir, allow_dirty=allow_dirty
-    )
-    
+
+    check_artifacts_from_clean_tree(analysis_names, out_prov_dir, allow_dirty=allow_dirty)
+
     if require_current_head and gitinfo.get("is_git_repo"):
         current_commit = gitinfo.get("commit", "")
         if current_commit:
-            check_artifacts_from_current_head(
-                analysis_names, out_prov_dir, current_commit
-            )
-    
+            check_artifacts_from_current_head(analysis_names, out_prov_dir, current_commit)
+
     # Load or initialize paper provenance
     prov_path = paper_root / "provenance.yml"
     prov = load_yml(prov_path) if prov_path.exists() else {}
     prov.setdefault("paper_provenance_version", 1)
     prov.setdefault("analysis_git", gitinfo)
     prov.setdefault("artifacts", {})
-    
+
     # Analysis-level publishing: clear file-level tracking
     if "files" in prov:
         del prov["files"]
-    
+
     # Publish each analysis
     for name in analysis_names:
         meta_path = out_prov_dir / f"{name}.yml"
         if not meta_path.exists():
-            raise SystemExit(
-                f"Missing build record {meta_path}. Build first: make {name}"
-            )
+            raise SystemExit(f"Missing build record {meta_path}. Build first: make {name}")
         meta = load_yml(meta_path)
-        
+
         prov["artifacts"].setdefault(name, {})
-        
+
         for kind in kinds:
             ext = "pdf" if kind == "figures" else "tex"
             src = project_root / "output" / kind / f"{name}.{ext}"
             dst = paper_root / kind / f"{name}.{ext}"
-            
+
             if not src.exists():
                 if verbose:
                     print(f"  Warning: {src} not found, skipping")
                 continue
-            
+
             copied = copy_if_changed(src, dst)
-            
+
             if verbose:
                 status = "Published" if copied else "Up-to-date"
                 rel_path = dst.relative_to(paper_root)
                 print(f"  {name:15s}  {status:11s}  {rel_path}")
-            
+
             prov["artifacts"][name][kind] = {
                 "published_at_utc": now_utc_iso(),
                 "copied": copied,
@@ -248,10 +242,10 @@ def publish_analyses(
                 "dst_sha256": sha256_file(dst),
                 "build_record": meta,
             }
-    
+
     prov["last_updated_utc"] = now_utc_iso()
     save_yml(prov_path, prov)
-    
+
     return prov
 
 
@@ -266,7 +260,7 @@ def publish_files(
 ) -> Dict[str, Any]:
     """
     Publish specific output files.
-    
+
     Args:
         project_root: Root of analysis repository
         paper_root: Root of paper repository
@@ -274,7 +268,7 @@ def publish_files(
         allow_dirty: Allow publishing from dirty tree
         require_not_behind: Require branch not behind upstream
         verbose: Print status messages
-        
+
     Returns:
         Updated provenance dictionary
     """
@@ -284,38 +278,37 @@ def publish_files(
         allow_dirty=allow_dirty,
         require_not_behind=require_not_behind,
     )
-    
+
     # Load or initialize paper provenance
     prov_path = paper_root / "provenance.yml"
     prov = load_yml(prov_path) if prov_path.exists() else {}
     prov.setdefault("paper_provenance_version", 1)
     prov.setdefault("analysis_git", gitinfo)
-    
+
     # File-level publishing: clear analysis-level tracking
     prov["files"] = {}
     if "artifacts" in prov:
         del prov["artifacts"]
-    
+
     output_dir = project_root / "output"
-    
+
     for src in file_paths:
         if not src.is_absolute():
             src = project_root / src
-        
+
         if not src.exists():
             raise SystemExit(f"Source file not found: {src}")
-        
+
         # Determine destination
         try:
             rel_path = src.relative_to(output_dir)
         except ValueError:
             raise SystemExit(
-                f"File {src} is not in output/ directory. "
-                "Only output files can be published."
+                f"File {src} is not in output/ directory. " "Only output files can be published."
             )
-        
+
         dst = paper_root / rel_path
-        
+
         # Try to find associated build record
         analysis_name = _infer_analysis_name(src, project_root)
         build_record = None
@@ -323,15 +316,15 @@ def publish_files(
             prov_file = project_root / "output" / "provenance" / f"{analysis_name}.yml"
             if prov_file.exists():
                 build_record = load_yml(prov_file)
-        
+
         # Copy file
         copied = copy_if_changed(src, dst)
-        
+
         if verbose:
             status = "Published" if copied else "Up-to-date"
             rel_dst = dst.relative_to(paper_root)
             print(f"  {rel_dst!s:40s}  {status}")
-        
+
         # Record in provenance
         file_key = str(rel_path)
         prov["files"][file_key] = {
@@ -343,10 +336,10 @@ def publish_files(
             "analysis_name": analysis_name,
             "build_record": build_record,
         }
-    
+
     prov["last_updated_utc"] = now_utc_iso()
     save_yml(prov_path, prov)
-    
+
     return prov
 
 
@@ -358,7 +351,7 @@ def _infer_analysis_name(output_path: Path, project_root: Path) -> str | None:
     prov_dir = project_root / "output" / "provenance"
     if not prov_dir.exists():
         return None
-    
+
     # Look for provenance files that list this output
     for prov_file in prov_dir.glob("*.yml"):
         try:
@@ -369,5 +362,5 @@ def _infer_analysis_name(output_path: Path, project_root: Path) -> str | None:
                     return prov_file.stem  # The analysis name
         except Exception:
             continue
-    
+
     return None

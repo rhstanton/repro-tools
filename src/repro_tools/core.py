@@ -34,9 +34,7 @@ def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
 def _run_git(args: List[str], cwd: Path) -> Optional[str]:
     """Run git command and return output, or None if failed."""
     try:
-        out = subprocess.check_output(
-            ["git", *args], cwd=str(cwd), stderr=subprocess.DEVNULL
-        )
+        out = subprocess.check_output(["git", *args], cwd=str(cwd), stderr=subprocess.DEVNULL)
         return out.decode("utf-8").strip()
     except Exception:
         return None
@@ -45,7 +43,7 @@ def _run_git(args: List[str], cwd: Path) -> Optional[str]:
 def git_state(repo_root: Path) -> Dict[str, Any]:
     """
     Capture current git repository state.
-    
+
     Returns dictionary with:
         is_git_repo: bool
         commit: str (full SHA) or None
@@ -63,9 +61,7 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
     # Check for uncommitted changes
     try:
         subprocess.check_call(["git", "diff", "--quiet"], cwd=str(repo_root))
-        subprocess.check_call(
-            ["git", "diff", "--cached", "--quiet"], cwd=str(repo_root)
-        )
+        subprocess.check_call(["git", "diff", "--cached", "--quiet"], cwd=str(repo_root))
     except Exception:
         dirty = True
 
@@ -76,9 +72,7 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
 
     ahead = behind = None
     if upstream:
-        lr = _run_git(
-            ["rev-list", "--left-right", "--count", f"HEAD...{upstream}"], cwd=repo_root
-        )
+        lr = _run_git(["rev-list", "--left-right", "--count", f"HEAD...{upstream}"], cwd=repo_root)
         if lr and "\t" in lr:
             left, right = lr.split("\t")
             # left = commits only in HEAD (ahead), right = commits only in upstream (behind)
@@ -111,7 +105,7 @@ def write_build_record(
 ) -> None:
     """
     Write a per-artifact YAML build record.
-    
+
     Records:
     - What was built (artifact_name)
     - When it was built (UTC timestamp)
@@ -119,7 +113,7 @@ def write_build_record(
     - Git state at build time
     - Input files with SHA256 checksums
     - Output files with SHA256 checksums
-    
+
     Args:
         out_meta: Path to write provenance YAML
         artifact_name: Name of the artifact being built
@@ -179,12 +173,12 @@ def auto_build_record(
 ) -> None:
     """
     Simplified wrapper that auto-detects parameters.
-    
+
     Auto-detects:
     - artifact_name from calling script filename (removes "build_" prefix)
     - repo_root from calling script's parent directory
     - command from sys.argv
-    
+
     Args:
         out_meta: Path to write provenance YAML
         inputs: List of input file paths
@@ -194,27 +188,27 @@ def auto_build_record(
     """
     import inspect
     import sys
-    
+
     # Get the calling script's file path
     frame = inspect.currentframe()
     if frame is None or frame.f_back is None:
         raise RuntimeError("Cannot determine calling script")
-    
+
     caller_file = Path(frame.f_back.f_globals["__file__"]).resolve()
-    
+
     # Auto-detect artifact name if not provided
     if artifact_name is None:
         artifact_name = caller_file.stem
         if artifact_name.startswith("build_"):
             artifact_name = artifact_name[6:]  # Remove "build_" prefix
-    
+
     # Auto-detect repo root if not provided
     if repo_root is None:
         repo_root = caller_file.parent
-    
+
     # Use sys.argv for command (exact command that was run)
     command = sys.argv.copy()
-    
+
     # Call the full function
     write_build_record(
         out_meta=out_meta,
@@ -229,33 +223,35 @@ def auto_build_record(
 def auto_provenance_from_config(artifact_name: str) -> None:
     """
     Automatically record provenance using config.py definitions.
-    
+
     This can be called from build scripts OR from Makefile - it's safe either way.
     If called multiple times, only the first call records provenance.
-    
+
     Usage in build script:
         from repro_tools import auto_provenance_from_config
         # ... do analysis ...
         auto_provenance_from_config("price_base")  # or auto-detect from __file__
-    
+
     Or call from atexit handler to run automatically at script exit.
     """
     global _provenance_recorded
-    
+
     if _provenance_recorded or not _should_record_provenance:
         return
-    
+
     try:
         # Import config here to avoid circular imports
         import config
-        
+
         if artifact_name not in config.ANALYSES:
-            print(f"Warning: Unknown analysis '{artifact_name}', skipping provenance", file=sys.stderr)
+            print(
+                f"Warning: Unknown analysis '{artifact_name}', skipping provenance", file=sys.stderr
+            )
             print(f"  Available analyses: {', '.join(config.ANALYSES.keys())}", file=sys.stderr)
             return
-        
+
         analysis_cfg = config.ANALYSES[artifact_name]
-        
+
         write_build_record(
             out_meta=analysis_cfg["outputs"]["provenance"],
             artifact_name=artifact_name,
@@ -264,11 +260,14 @@ def auto_provenance_from_config(artifact_name: str) -> None:
             inputs=analysis_cfg["inputs"],
             outputs=[analysis_cfg["outputs"]["figure"], analysis_cfg["outputs"]["table"]],
         )
-        
+
         _provenance_recorded = True
-        
+
     except ImportError as e:
-        print(f"Warning: enable_auto_provenance requires config.py with ANALYSES dictionary", file=sys.stderr)
+        print(
+            f"Warning: enable_auto_provenance requires config.py with ANALYSES dictionary",
+            file=sys.stderr,
+        )
         print(f"  For standalone scripts, use auto_build_record() instead", file=sys.stderr)
         print(f"  See: repro-tools documentation", file=sys.stderr)
     except Exception as e:
@@ -278,17 +277,17 @@ def auto_provenance_from_config(artifact_name: str) -> None:
 def enable_auto_provenance(script_file: str) -> None:
     """
     Enable automatic provenance recording at script exit.
-    
+
     Call this at the top of your build script:
         from repro_tools import enable_auto_provenance
         enable_auto_provenance(__file__)
-    
+
     Provenance will be recorded automatically when the script exits successfully.
     """
     script_path = Path(script_file)
     artifact_name = script_path.stem
     if artifact_name.startswith("build_"):
         artifact_name = artifact_name[6:]
-    
+
     # Register atexit handler to record provenance when script completes
     atexit.register(auto_provenance_from_config, artifact_name)

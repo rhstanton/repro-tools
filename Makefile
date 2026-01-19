@@ -3,16 +3,21 @@
 ENV_DIR := .env
 CONDA := conda
 
-.PHONY: help all env test clean
+.PHONY: help all env test clean lint format typecheck check coverage
 
 help:
 	@echo "Available targets:"
-	@echo "  make help   - Show this help message (default)"
-	@echo "  make all    - Set up environment and run tests"
-	@echo "  make env    - Create/update conda environment and install package"
-	@echo "  make test   - Run all tests"
-	@echo "  make test-q - Run tests (quiet)"
-	@echo "  make clean  - Remove environment and build artifacts"
+	@echo "  make help      - Show this help message (default)"
+	@echo "  make all       - Set up environment and run tests"
+	@echo "  make env       - Create/update conda environment and install package"
+	@echo "  make test      - Run all tests"
+	@echo "  make test-q    - Run tests (quiet)"
+	@echo "  make coverage  - Run tests with coverage report"
+	@echo "  make lint      - Run all linters (black check + mypy)"
+	@echo "  make format    - Format code with black"
+	@echo "  make typecheck - Run mypy type checker"
+	@echo "  make check     - Run all checks (lint + test)"
+	@echo "  make clean     - Remove environment and build artifacts"
 
 # Set up and test
 all: env test
@@ -40,6 +45,37 @@ test:
 # Quick test (quiet mode)
 test-q:
 	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -q
+
+# Run tests with coverage report
+coverage:
+	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -v --cov=repro_tools --cov-report=term-missing --cov-report=html
+	@echo ""
+	@echo "Coverage report generated in htmlcov/index.html"
+
+# Format code with black
+format:
+	@echo "Formatting code with black..."
+	@$(CONDA) run --prefix $(ENV_DIR) black src/ tests/ examples/
+	@echo "Code formatted!"
+
+# Run type checker
+typecheck:
+	@echo "Running mypy type checker..."
+	@$(CONDA) run --prefix $(ENV_DIR) mypy src/repro_tools
+	@echo "Type checking complete!"
+
+# Run all linters (black check + mypy)
+lint:
+	@echo "Checking code formatting with black..."
+	@$(CONDA) run --prefix $(ENV_DIR) black --check src/ tests/ examples/
+	@echo "Running mypy type checker..."
+	@$(CONDA) run --prefix $(ENV_DIR) mypy src/repro_tools
+	@echo "All linting checks passed!"
+
+# Run all checks (lint + test)
+check: lint test
+	@echo ""
+	@echo "All checks passed!"
 
 # Clean build artifacts and environment
 clean:

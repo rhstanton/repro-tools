@@ -222,9 +222,7 @@ class TestPublishingEdgeCases:
         prov_file = output_dir / "provenance" / "test.yml"
         prov_file.parent.mkdir(parents=True)
         prov_file.write_text(
-            "artifact: test\n"
-            "built_at_utc: '2026-01-18T12:00:00+00:00'\n"
-            "outputs: []\n"
+            "artifact: test\n" "built_at_utc: '2026-01-18T12:00:00+00:00'\n" "outputs: []\n"
         )
 
         # Try to publish kind that doesn't exist in output structure
@@ -251,7 +249,7 @@ class TestPublishingEdgeCases:
         # Create simple provenance and output
         prov_file = output_dir / "provenance" / "test.yml"
         prov_file.parent.mkdir(parents=True)
-        
+
         fig = output_dir / "figures" / "test.pdf"
         fig.parent.mkdir(parents=True)
         fig.write_text("fake figure")
@@ -290,14 +288,14 @@ class TestCommandRecording:
         out_meta = tmp_path / "out.yml"
         output = tmp_path / "output.txt"
         output.write_text("test")
-        
+
         write_build_record(
             out_meta=out_meta,
             artifact_name="test",
             repo_root=tmp_path,
             inputs=[],
             outputs=[output],
-            command=["python", "script.py", "--arg", "value with spaces", "--flag"]
+            command=["python", "script.py", "--arg", "value with spaces", "--flag"],
         )
 
         prov = load_yml(out_meta)
@@ -308,7 +306,7 @@ class TestCommandRecording:
         out_meta = tmp_path / "out.yml"
         output = tmp_path / "output.txt"
         output.write_text("test")
-        
+
         # Mock sys.argv
         with patch("sys.argv", ["test_script.py", "--test-arg"]):
             auto_build_record(

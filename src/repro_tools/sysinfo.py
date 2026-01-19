@@ -28,21 +28,23 @@ def get_git_info(repo_path):
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
-        
+
         branch = subprocess.check_output(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=repo_path,
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
-        
-        is_dirty = bool(subprocess.check_output(
-            ["git", "status", "--porcelain"],
-            cwd=repo_path,
-            stderr=subprocess.DEVNULL,
-            text=True,
-        ).strip())
-        
+
+        is_dirty = bool(
+            subprocess.check_output(
+                ["git", "status", "--porcelain"],
+                cwd=repo_path,
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+        )
+
         return {
             "commit": commit,
             "branch": branch,
@@ -77,10 +79,10 @@ def get_python_packages():
 def get_julia_info(repo_path):
     """Get Julia version and package information."""
     julia_exe = repo_path / ".julia" / "pyjuliapkg" / "install" / "bin" / "julia"
-    
+
     if not julia_exe.exists():
         return {"error": "Julia not installed"}
-    
+
     try:
         # Get Julia version
         version_result = subprocess.run(
@@ -90,7 +92,7 @@ def get_julia_info(repo_path):
             check=False,
         )
         version = version_result.stdout.strip() if version_result.returncode == 0 else "unknown"
-        
+
         # Get package status
         env_project = repo_path / "env" / "Project.toml"
         if env_project.exists():
@@ -102,10 +104,12 @@ def get_julia_info(repo_path):
                 timeout=30,
                 check=False,
             )
-            packages = pkg_result.stdout if pkg_result.returncode == 0 else "Could not get package list"
+            packages = (
+                pkg_result.stdout if pkg_result.returncode == 0 else "Could not get package list"
+            )
         else:
             packages = "No Project.toml found"
-        
+
         return {
             "version": version,
             "packages": packages,
@@ -132,7 +136,7 @@ def get_system_info(repo_path):
         "python_packages": get_python_packages(),
         "julia": get_julia_info(repo_path),
     }
-    
+
     return info
 
 
@@ -151,14 +155,14 @@ def main():
         help="Repository root directory (default: current directory)",
     )
     args = parser.parse_args()
-    
+
     # Ensure output directory exists
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Gather information
     print(f"Gathering system information...")
     info = get_system_info(args.repo_root.resolve())
-    
+
     # Write to file
     print(f"Writing to {args.output}...")
     if yaml:
@@ -170,7 +174,9 @@ def main():
         with open(args.output.with_suffix(".txt"), "w") as f:
             for key, value in info.items():
                 f.write(f"{key}: {value}\n")
-        print(f"✅ System information saved to {args.output.with_suffix('.txt')} (PyYAML not available)")
+        print(
+            f"✅ System information saved to {args.output.with_suffix('.txt')} (PyYAML not available)"
+        )
 
 
 if __name__ == "__main__":

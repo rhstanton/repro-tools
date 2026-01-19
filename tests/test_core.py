@@ -13,12 +13,12 @@ def test_sha256_file():
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
         f.write("test content\n")
         path = Path(f.name)
-    
+
     try:
         checksum = sha256_file(path)
         assert isinstance(checksum, str)
         assert len(checksum) == 64  # SHA256 is 64 hex chars
-        
+
         # Same content = same checksum
         checksum2 = sha256_file(path)
         assert checksum == checksum2
@@ -37,18 +37,18 @@ def test_write_build_record():
     """Test writing build provenance."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
-        
+
         # Create input file
         input_file = tmpdir / "input.txt"
         input_file.write_text("input data\n")
-        
+
         # Create output file
         output_file = tmpdir / "output.txt"
         output_file.write_text("output data\n")
-        
+
         # Create provenance file
         prov_file = tmpdir / "provenance.yml"
-        
+
         write_build_record(
             out_meta=prov_file,
             artifact_name="test_artifact",
@@ -57,14 +57,15 @@ def test_write_build_record():
             inputs=[input_file],
             outputs=[output_file],
         )
-        
+
         assert prov_file.exists()
-        
+
         # Check provenance contains expected fields
         import yaml
+
         with prov_file.open() as f:
             prov = yaml.safe_load(f)
-        
+
         assert prov["artifact"] == "test_artifact"
         assert prov["command"] == ["python", "test.py"]
         assert "built_at_utc" in prov
