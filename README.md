@@ -189,20 +189,23 @@ See `examples/` directory:
 ## Development
 
 ```bash
-# Install with dev dependencies
-pip install -e ".[dev]"
+# Set up environment (one command)
+make env
 
 # Run tests
-pytest
+make test
 
 # Run tests with coverage
-pytest --cov=repro_tools --cov-report=html
+make coverage
 
 # Format code
-black src/ tests/
+make format
 
 # Type checking
-mypy src/
+make typecheck
+
+# Run all checks (lint + test)
+make check
 ```
 
 ## License

@@ -43,6 +43,12 @@ conda activate ./.env
 make test-q
 ```
 
+**Check code quality:**
+```bash
+make format  # Auto-format code
+make check   # Run linters and tests
+```
+
 **Deactivate when done:**
 ```bash
 conda deactivate
@@ -54,6 +60,11 @@ conda deactivate
 - `make env` - Create conda environment and install package (one step!)
 - `make test` - Run all tests (verbose)
 - `make test-q` - Run all tests (quiet)
+- `make coverage` - Run tests with coverage report (generates htmlcov/)
+- `make lint` - Run all linters (black check + mypy)
+- `make format` - Auto-format code with black
+- `make typecheck` - Run mypy type checker
+- `make check` - Run all checks (lint + test) - useful for pre-commit
 - `make clean` - Remove environment and build artifacts
 
 ## Notes
