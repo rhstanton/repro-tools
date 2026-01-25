@@ -683,9 +683,10 @@ print("=" * 80)
 print()
 
 # Calculate environment directory FIRST (before importing juliacall)
-env_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-repo_root = os.path.dirname(env_dir)
-julia_depot = os.path.join(repo_root, ".julia")
+# Use abspath() to ensure all paths are absolute
+env_dir = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+repo_root = os.path.abspath(os.path.dirname(env_dir))
+julia_depot = os.path.abspath(os.path.join(repo_root, ".julia"))
 
 # CRITICAL: Unset JULIA_PROJECT if set by runpython wrapper!
 # The runpython wrapper sets JULIA_PROJECT=env/ but fresh projects don't
