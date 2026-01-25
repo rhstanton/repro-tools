@@ -181,11 +181,11 @@ export JULIA_NUM_THREADS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/de
 {chr(10).join(runners)}
 
 # repro-tools CLI commands
-REPRO_CHECK   := $(PYTHON) -m repro_tools.cli check
-REPRO_PUBLISH := $(PYTHON) -m repro_tools.cli publish
-REPRO_COMPARE := $(PYTHON) -m repro_tools.cli compare
-REPRO_SYSINFO := $(PYTHON) -m repro_tools.cli sysinfo
-REPRO_REPORT  := $(PYTHON) -m repro_tools.cli report
+REPRO_CHECK   := repro-check
+REPRO_PUBLISH := repro-publish
+REPRO_COMPARE := repro-compare
+REPRO_SYSINFO := repro-sysinfo
+REPRO_REPORT  := repro-report
 
 # ==============================================================================
 # Analysis Definitions
