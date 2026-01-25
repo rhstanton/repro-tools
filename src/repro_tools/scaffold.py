@@ -533,6 +533,7 @@ dependencies:
   - pytest
   - ruff
   - mypy
+  - pip
   - pip:
     - docopt
     - -e ../lib/repro-tools
