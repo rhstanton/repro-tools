@@ -686,16 +686,18 @@ env_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 repo_root = os.path.dirname(env_dir)
 julia_depot = os.path.join(repo_root, ".julia")
 
+# CRITICAL: Unset JULIA_PROJECT if set by runpython wrapper!
+# The runpython wrapper sets JULIA_PROJECT=env/ but fresh projects don't
+# have env/Manifest.toml yet. juliacall needs to use .julia/ project first,
+# then we'll switch to env/ when running Pkg.instantiate() via subprocess.
+if "JULIA_PROJECT" in os.environ:
+    del os.environ["JULIA_PROJECT"]
+
 # Configure Julia to use project-local depot (not ~/.julia)
 os.environ["JULIA_DEPOT_PATH"] = julia_depot
 
 # Tell juliacall to install Julia binary in .julia/ directory
 os.environ["PYTHON_JULIAPKG_PROJECT"] = julia_depot
-
-# NOTE: Don't set JULIA_PROJECT yet! Setting it before juliacall imports
-# causes errors with fresh projects that don't have env/Manifest.toml yet.
-# juliacall will use the .julia/ project first, then we'll switch to env/
-# when running Pkg.instantiate() via subprocess
 
 # Configure PythonCall to use system Python (not CondaPkg)
 # This prevents CondaPkg from creating a redundant Python environment
