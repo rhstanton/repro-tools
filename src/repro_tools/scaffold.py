@@ -572,13 +572,18 @@ coefplot 2.0.0
 ENV_DIR := $(strip $(CURDIR))
 REPO_ROOT := $(abspath $(ENV_DIR)/..)
 
-.PHONY: all-env python-env julia-install-via-python
-
-all-env: python-env
-'''
+.PHONY: all-env python-env julia-install-via-python'''
+    
+    if "stata" in languages:
+        env_makefile += " stata-env"
+    
+    env_makefile += "\n\nall-env: python-env\n"
     
     if "julia" in languages:
         env_makefile += "\t$(MAKE) julia-install-via-python\n"
+    
+    if "stata" in languages:
+        env_makefile += "\t$(MAKE) stata-env\n"
     
     env_makefile += '''
 python-env:
@@ -600,6 +605,51 @@ python-env:
         env_makefile += '''julia-install-via-python:
 \t@echo ">> Installing Julia via juliacall..."
 \t@cd $(REPO_ROOT) && $(REPO_ROOT)/env/scripts/runpython $(REPO_ROOT)/env/scripts/install_julia.py
+'''
+    
+    if "stata" in languages:
+        env_makefile += '''
+# ---------- Stata ----------
+STATA_LOCAL := ../.stata/ado/plus
+
+# Read package list - only take first word of each line
+STATA_PACKAGES := $(shell awk '{print $$1}' stata-packages.txt 2>/dev/null)
+
+# Create a stamp file for each package
+STATA_STAMPS := $(addprefix ../.stata/., $(addsuffix .stamp, $(STATA_PACKAGES)))
+
+stata-env: $(STATA_STAMPS)
+\t@echo "All Stata packages installed in $(STATA_LOCAL)"
+\t@echo "Use env/scripts/runstata to run your .do files"
+
+# Rule to install each package
+../.stata/.%.stamp: stata-packages.txt | $(STATA_LOCAL)
+\t@mkdir -p ../.stata
+\t@echo "Installing Stata package: $*"
+\t@VERSION=$$(awk '$$1 == "$*" {print $$2}' stata-packages.txt); \\
+\techo 'sysdir set PLUS "$(CURDIR)/../.stata/ado/plus"' > /tmp/stata_install_$*.do; \\
+\tif [ -n "$$VERSION" ]; then \\
+\t\techo "  with version $$VERSION"; \\
+\t\techo "cap noi ssc install $* $$VERSION, replace all" >> /tmp/stata_install_$*.do; \\
+\telse \\
+\t\techo "cap noi ssc install $*, replace all" >> /tmp/stata_install_$*.do; \\
+\tfi; \\
+\techo 'exit, clear STATA' >> /tmp/stata_install_$*.do; \\
+\t(cd /tmp && stata-mp -b do /tmp/stata_install_$*.do > /dev/null 2>&1) || true; \\
+\trm -f /tmp/stata_install_$*.do /tmp/stata_install_$*.do.log
+\t@touch $@
+
+# Create the local Stata directory structure
+$(STATA_LOCAL):
+\t@mkdir -p $(STATA_LOCAL)
+
+stata-clean:
+\trm -rf ../.stata
+\trm -f /tmp/stata_install_*.do /tmp/stata_install_*.do.log
+
+stata-check:
+\t@echo "Installed Stata packages:"
+\t@find ../.stata/ado/plus -name "*.ado" -exec basename {} \\; 2>/dev/null | sort | uniq || echo "No packages installed"
 '''
     
     (project_dir / "env" / "Makefile").write_text(env_makefile)
