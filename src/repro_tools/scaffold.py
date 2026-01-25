@@ -688,12 +688,14 @@ env_dir = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file
 repo_root = os.path.abspath(os.path.dirname(env_dir))
 julia_depot = os.path.abspath(os.path.join(repo_root, ".julia"))
 
-# CRITICAL: Unset JULIA_PROJECT if set by runpython wrapper!
-# The runpython wrapper sets JULIA_PROJECT=env/ but fresh projects don't
-# have env/Manifest.toml yet. juliacall needs to use .julia/ project first,
-# then we'll switch to env/ when running Pkg.instantiate() via subprocess.
+# CRITICAL: Unset JULIA_PROJECT and JULIA_LOAD_PATH set by runpython wrapper!
+# The runpython wrapper sets these to use env/ but fresh projects don't have
+# env/Manifest.toml yet. juliacall needs to use .julia/ project only during
+# import, then we'll switch to env/ when running Pkg.instantiate() via subprocess.
 if "JULIA_PROJECT" in os.environ:
     del os.environ["JULIA_PROJECT"]
+if "JULIA_LOAD_PATH" in os.environ:
+    del os.environ["JULIA_LOAD_PATH"]
 
 # Configure Julia to use project-local depot (not ~/.julia)
 os.environ["JULIA_DEPOT_PATH"] = julia_depot
