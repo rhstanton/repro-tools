@@ -524,7 +524,7 @@ if __name__ == "__main__":
 def generate_environment_files(project_dir: Path, languages: list[str]) -> None:
     """Generate env/ directory files."""
     # Python environment
-    python_yml = '''name: research_env
+    python_yml = f'''name: research_env
 channels:
   - conda-forge
 dependencies:
@@ -539,6 +539,7 @@ dependencies:
   - mypy
   - pip:
     - docopt
+    - -e ../lib/repro-tools
 '''
     
     if "julia" in languages:
