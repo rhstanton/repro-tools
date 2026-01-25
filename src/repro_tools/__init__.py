@@ -70,4 +70,5 @@ __all__ = [
     "setup_environment",
     # Validation
     "print_validation_errors",
+    "validate_study_config",
 ]
