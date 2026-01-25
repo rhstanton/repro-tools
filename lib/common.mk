@@ -44,11 +44,6 @@ environment: init-submodules
 	@echo ""
 	@echo "✓ Environment ready!"
 	@echo ""
-	@echo "  Python 3.11:    .env/bin/python"
-	@echo "  Julia:          .julia/pyjuliapkg/install/bin/julia"
-	@echo "  Stata packages: .stata/ado/plus/ (if Stata installed)"
-	@echo "  repro-tools:    lib/repro-tools/ (git submodule)"
-	@echo ""
 	@echo "Next: make all (to run all analyses)"
 	@echo ""
 
