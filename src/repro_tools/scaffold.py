@@ -285,28 +285,16 @@ PUBLISH_STAMP_DIR := .publish_stamps
 publish:
 \t@$(REPRO_CHECK) --artifacts "$(PUBLISH_ANALYSES)"
 \t@echo "Publishing to paper/..."
-\t@$(MAKE) --no-print-directory publish-figures publish-tables
+\t@$(MAKE) --no-print-directory -s $(addprefix $(PUBLISH_STAMP_DIR)/,$(addsuffix .stamp,$(PUBLISH_ANALYSES)))
 \t@echo "✓ Publishing complete"
 
 publish-force:
 \t@rm -rf $(PUBLISH_STAMP_DIR)
 \t@$(MAKE) publish
 
-.PHONY: publish-figures publish-tables
-publish-figures:
-\t@$(MAKE) --no-print-directory -s $(addprefix $(PUBLISH_STAMP_DIR)/,$(addsuffix .figures.stamp,$(PUBLISH_ANALYSES)))
-
-publish-tables:
-\t@$(MAKE) --no-print-directory -s $(addprefix $(PUBLISH_STAMP_DIR)/,$(addsuffix .tables.stamp,$(PUBLISH_ANALYSES)))
-
-$(PUBLISH_STAMP_DIR)/%.figures.stamp: $(OUT_FIG_DIR)/%.pdf $(OUT_PROV_DIR)/%.yml
-\t@mkdir -p $(PUBLISH_STAMP_DIR) $(PAPER_FIG_DIR)
-\t@$(REPRO_PUBLISH) --paper-root $(PAPER_DIR) --kind figures --analyses "$*"
-\t@touch $@
-
-$(PUBLISH_STAMP_DIR)/%.tables.stamp: $(OUT_TBL_DIR)/%.tex $(OUT_PROV_DIR)/%.yml
-\t@mkdir -p $(PUBLISH_STAMP_DIR) $(PAPER_TBL_DIR)
-\t@$(REPRO_PUBLISH) --paper-root $(PAPER_DIR) --kind tables --analyses "$*"
+$(PUBLISH_STAMP_DIR)/%.stamp: $(OUT_FIG_DIR)/%.pdf $(OUT_TBL_DIR)/%.tex $(OUT_PROV_DIR)/%.yml
+\t@mkdir -p $(PUBLISH_STAMP_DIR) $(PAPER_FIG_DIR) $(PAPER_TBL_DIR)
+\t@$(REPRO_PUBLISH) analyses --paper-root $(PAPER_DIR) --project-root . "$*"
 \t@touch $@
 
 # ==============================================================================
@@ -453,7 +441,7 @@ def main():
     config = STUDIES[study_name]
     
     # Validate configuration
-    errors = validate_study_config(config)
+    errors = validate_study_config(config, study_name)
     if errors:
         print(f"❌ Configuration errors in '{study_name}':")
         for err in errors:
