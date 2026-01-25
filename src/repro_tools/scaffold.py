@@ -97,7 +97,8 @@ def create_project(
     # Generate environment files
     print("\n📄 Generating environment files...")
     generate_environment_files(project_dir, languages)
-    print("  ✓ env/python.yml, env/Project.toml, env/Makefile created")
+    generate_example_files(project_dir, languages)
+    print("  ✓ env/python.yml, env/Project.toml, env/Makefile, examples created")
     
     # Generate documentation
     print("\n📄 Generating documentation...")
@@ -1120,6 +1121,201 @@ end
 '''
         execute_ado_path = project_dir / "env" / "scripts" / "execute.ado"
         execute_ado_path.write_text(execute_ado)
+
+
+def generate_example_files(project_dir: Path, languages: list[str]) -> None:
+    """Generate example files for each language."""
+    examples_dir = project_dir / "env" / "examples"
+    
+    # README for examples
+    readme_content = '''# Examples
+
+Sample scripts demonstrating how to use different components of the project.
+
+## Files
+
+'''
+    if "python" in languages:
+        readme_content += "- **`sample_python.py`** - Example Python script\n"
+    if "julia" in languages:
+        readme_content += "- **`sample_julia.jl`** - Example Julia script\n"
+        readme_content += "- **`sample_juliacall.py`** - Example Python script using juliacall (Python/Julia interop)\n"
+    if "stata" in languages:
+        readme_content += "- **`sample_stata.do`** - Example Stata script (if Stata is installed)\n"
+    
+    readme_content += '''
+## Usage
+
+These are minimal examples for testing and learning. For complete analyses, see the scripts in the project root.
+
+## Running Examples
+
+```bash
+'''
+    if "python" in languages:
+        readme_content += "# Python example\nenv/scripts/runpython env/examples/sample_python.py\n\n"
+    if "julia" in languages:
+        readme_content += "# Julia example (pure Julia)\nenv/scripts/runjulia env/examples/sample_julia.jl\n\n"
+        readme_content += "# Julia example (via juliacall from Python)\nenv/scripts/runpython env/examples/sample_juliacall.py\n\n"
+    if "stata" in languages:
+        readme_content += "# Stata example (if Stata installed)\nenv/scripts/runstata env/examples/sample_stata.do\n"
+    
+    readme_content += '''```
+
+Or run all at once:
+
+```bash
+make examples
+```
+'''
+    (examples_dir / "README.md").write_text(readme_content)
+    
+    # Python example
+    if "python" in languages:
+        python_example = '''"""Sample Python script demonstrating basic functionality."""
+
+import sys
+
+import numpy as np
+import pandas as pd
+
+print("=" * 60)
+print("Sample Python Script")
+print("=" * 60)
+print()
+print(f"Python version: {sys.version}")
+print(f"NumPy version: {np.__version__}")
+print(f"Pandas version: {pd.__version__}")
+print()
+
+# Simple data manipulation
+df = pd.DataFrame({"x": [1, 2, 3, 4, 5], "y": [2, 4, 6, 8, 10]})
+
+print("Sample DataFrame:")
+print(df)
+print()
+print(f"Mean of x: {df['x'].mean()}")
+print(f"Mean of y: {df['y'].mean()}")
+print()
+print("✓ Python example completed successfully")
+print("=" * 60)
+'''
+        (examples_dir / "sample_python.py").write_text(python_example)
+    
+    # Julia examples
+    if "julia" in languages:
+        julia_example = '''#!/usr/bin/env julia
+# Sample Julia script demonstrating basic functionality
+
+println("=" ^ 60)
+println("Sample Julia Script")
+println("=" ^ 60)
+println()
+
+println("Julia version: ", VERSION)
+println()
+
+# Simple array operations
+x = [1, 2, 3, 4, 5]
+println("Array x: ", x)
+println("Mean: ", sum(x) / length(x))
+println("Sum: ", sum(x))
+println()
+
+# Simple DataFrame example
+using DataFrames
+df = DataFrame(
+    x = 1:5,
+    y = 2:2:10
+)
+
+println("Sample DataFrame:")
+println(df)
+println()
+
+println("✓ Julia example completed successfully")
+println("=" ^ 60)
+'''
+        (examples_dir / "sample_julia.jl").write_text(julia_example)
+        
+        juliacall_example = '''"""Sample Julia script demonstrating Python/Julia interop via juliacall."""
+
+import sys
+
+print("=" * 60)
+print("Sample Julia Script (via juliacall)")
+print("=" * 60)
+print()
+
+try:
+    from juliacall import Main as jl
+
+    print(f"Julia version: {jl.seval('VERSION')}")
+    print()
+
+    # Simple Julia computation
+    jl.seval(
+        """
+    println("Running Julia code from Python...")
+    println()
+
+    # Create a simple array
+    x = [1, 2, 3, 4, 5]
+    println("Array x: ", x)
+    println("Mean: ", sum(x) / length(x))
+    println("Sum: ", sum(x))
+    println()
+    """
+    )
+
+    # Python can call Julia functions
+    result = jl.seval("sum([1, 2, 3, 4, 5])")
+    print(f"Sum computed in Julia, returned to Python: {result}")
+    print()
+
+    print("✓ Julia example completed successfully")
+    print("=" * 60)
+
+except ImportError as e:
+    print(f"✗ juliacall not available: {e}")
+    print()
+    print("Run 'make environment' to install Julia support")
+    print("=" * 60)
+    sys.exit(1)
+'''
+        (examples_dir / "sample_juliacall.py").write_text(juliacall_example)
+    
+    # Stata example
+    if "stata" in languages:
+        stata_example = '''* Sample Stata script demonstrating basic functionality
+
+disp "=========================================="
+disp "Sample Stata Script"
+disp "=========================================="
+disp ""
+
+* Display Stata version
+disp "Stata version: " c(stata_version)
+disp ""
+
+* Create simple dataset
+clear
+set obs 5
+gen x = _n
+gen y = x * 2
+
+disp "Sample dataset:"
+list
+disp ""
+
+* Summary statistics
+summarize x y
+disp ""
+
+disp "✓ Stata example completed successfully"
+disp "=========================================="
+'''
+        (examples_dir / "sample_stata.do").write_text(stata_example)
 
 
 
