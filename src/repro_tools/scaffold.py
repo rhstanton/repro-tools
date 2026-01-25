@@ -559,6 +559,9 @@ DataFrames = "1"
     # env/Makefile
     env_makefile = '''# Environment setup Makefile
 
+ENV_DIR := $(strip $(CURDIR))
+REPO_ROOT := $(abspath $(ENV_DIR)/..)
+
 .PHONY: all-env python-env julia-install-via-python
 
 all-env: python-env
