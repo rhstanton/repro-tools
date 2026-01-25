@@ -557,6 +557,15 @@ DataFrames = "1"
 '''
         (project_dir / "env" / "Project.toml").write_text(project_toml)
     
+    # Stata packages file
+    if "stata" in languages:
+        stata_packages = '''reghdfe
+ftools
+estout 3.1.2
+coefplot 2.0.0
+'''
+        (project_dir / "env" / "stata-packages.txt").write_text(stata_packages)
+    
     # env/Makefile
     env_makefile = '''# Environment setup Makefile
 
@@ -911,6 +920,157 @@ except Exception as e:
         install_julia_path = project_dir / "env" / "scripts" / "install_julia.py"
         install_julia_path.write_text(install_julia)
         install_julia_path.chmod(0o755)
+    
+    if "stata" in languages:
+        # Generate runstata wrapper
+        runstata = '''#!/usr/bin/env bash
+# ==============================================================================
+# Stata Environment Runner
+# ==============================================================================
+#
+# This script runs Stata do-files with proper environment checking.
+#
+# Usage:
+#   env/scripts/runstata script.do [args...]
+#
+# ==============================================================================
+
+set -eu  # Removed -o pipefail to allow grep filtering
+
+# Unset CDPATH to prevent cd from printing directories
+unset CDPATH
+
+DO_FILE="$1"
+
+if [ -z "$DO_FILE" ]; then
+    echo "Usage: runstata <file.do>"
+    exit 1
+fi
+
+# Get to project root (two levels up from env/scripts/)
+cd "$(dirname "$0")/../.."
+PROJECT_ROOT="$(pwd)"
+
+# Extract base name for log file
+BASE="${DO_FILE%.do}"
+LOG_FILE="output/logs/${BASE##*/}.log"
+
+# Create temporary setup file
+TEMP_DO=$(mktemp /tmp/stata_XXXXXX.do)
+trap "rm -f $TEMP_DO" EXIT
+
+# Write the setup commands
+echo "quietly adopath ++ \\"${PROJECT_ROOT}/.stata/ado/plus\\"" > "$TEMP_DO"
+echo "quietly adopath ++ \\"${PROJECT_ROOT}/env/scripts\\"" >> "$TEMP_DO"
+echo "execute ${DO_FILE}" >> "$TEMP_DO"
+
+# Run Stata, capturing output to detect errors
+# - timeout 10: Kill after 10 seconds to prevent infinite hangs
+# - -q flag: Quiet mode (suppress Stata banner)
+# - execute.ado displays errors with "Error in do-file (return code: ###)"
+# - TERM=dumb prevents Stata from waiting for terminal input
+# - </dev/null ensures Stata can't wait for stdin
+# 
+# Note: Stata batch mode always returns exit code 0 unless it crashes.
+# We must parse output to detect script errors.
+echo ""
+set +e  # Disable exit on error for stata call
+TEMP_OUT=$(mktemp /tmp/stata_out_XXXXXX.txt)
+trap "rm -f $TEMP_DO $TEMP_OUT" EXIT
+
+TERM=dumb timeout 10 stata-mp -q do "$TEMP_DO" </dev/null 2>&1 | tee "$TEMP_OUT"
+STATA_EXIT=$?
+
+# Check if output contains error pattern from execute.ado
+if grep -q "Error in do-file (return code:" "$TEMP_OUT"; then
+    # Extract error code
+    ERROR_CODE=$(grep "Error in do-file (return code:" "$TEMP_OUT" | sed 's/.*return code: \\([0-9]\\+\\).*/\\1/' | tail -1)
+    echo "Stata script failed with return code $ERROR_CODE" >&2
+    exit 1
+fi
+
+set -e  # Re-enable
+echo ""
+exit $STATA_EXIT
+'''
+        runstata_path = project_dir / "env" / "scripts" / "runstata"
+        runstata_path.write_text(runstata)
+        runstata_path.chmod(0o755)
+        
+        # Generate execute.ado helper
+        execute_ado = '''* Execute Stata do file then exit, putting log file in subdirectory ./logs.
+* Input do file can be passed either as "filename" or "filename.do", and
+* log file will be "output/logs/filename.log".
+*
+* Note that running
+*
+* stata execute file.do
+*
+* at a command prompt is similar to using batch mode,
+*
+* stata -b file.do
+*
+* but allows control over the location of the log file (in batch mode,
+* Stata always creates a log file in the current directory).   
+
+program execute
+
+   quietly capture log close
+   local doFile `1'
+
+   * Create logs directory if it doesn't exist
+   capture mkdir output
+   capture mkdir output/logs
+   
+   * Extract just the filename without directory path
+   * Find the last "/" or "\\" and extract everything after it
+   local baseFile "`doFile'"
+   local lastSlash = 0
+   forvalues i = 1/`=length("`doFile'")' {
+      if substr("`doFile'", `i', 1) == "/" | substr("`doFile'", `i', 1) == "\\\\" {
+         local lastSlash = `i'
+      }
+   }
+   if `lastSlash' > 0 {
+      local baseFile = substr("`doFile'", `lastSlash' + 1, .)
+   }
+   
+   * Create name of log file from base filename
+   local doLocation = strpos("`baseFile'", ".do")
+   if "`doLocation'" == "0" {
+      local logFile "`baseFile'.log" // If name does not contain ".do", just append ".log"
+      }
+   else { // If it does, replace ".do" with ".log"
+      local logFile = substr("`baseFile'", 1, `doLocation')
+      local logFile = "`logFile'log"
+      }   
+
+   * Start logging
+   quietly log using output/logs/`logFile', replace text
+
+   * Execute command line with error handling
+   * - capture: Prevents error from stopping execution
+   * - noisily: Shows error messages to user
+   capture noisily do `*'
+   local rc = _rc
+
+   * Turn off logging and exit Stata
+   quietly log close
+   
+   * Exit with appropriate return code
+   * - If error occurred (rc != 0), exit with that code to propagate failure
+   * - Otherwise, exit cleanly with STATA keyword to force exit
+   if `rc' != 0 {
+      display as error "Error in do-file (return code: `rc')"
+      exit `rc'
+   }
+   exit, clear STATA
+
+end
+'''
+        execute_ado_path = project_dir / "env" / "scripts" / "execute.ado"
+        execute_ado_path.write_text(execute_ado)
+
 
 
 def generate_readme(name: str, slug: str) -> str:
