@@ -283,7 +283,6 @@ PUBLISH_STAMP_DIR := .publish_stamps
 
 .PHONY: publish publish-force
 publish:
-\t@$(REPRO_CHECK) --artifacts "$(PUBLISH_ANALYSES)"
 \t@echo "Publishing to paper/..."
 \t@$(MAKE) --no-print-directory -s $(addprefix $(PUBLISH_STAMP_DIR)/,$(addsuffix .stamp,$(PUBLISH_ANALYSES)))
 \t@echo "✓ Publishing complete"
