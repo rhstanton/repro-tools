@@ -775,6 +775,11 @@ try:
 
     # Build Julia command
     julia_env = os.environ.copy()
+    
+    # CRITICAL: Set JULIA_DEPOT_PATH to use local .julia/ directory
+    # Without this, Julia may use ~/.julia or other system depots
+    julia_env["JULIA_DEPOT_PATH"] = julia_depot
+    
     julia_env["JULIA_CONDAPKG_BACKEND"] = "Null"
     julia_env["JULIA_PYTHONCALL_EXE"] = sys.executable
     load_path = [
