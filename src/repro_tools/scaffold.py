@@ -586,7 +586,7 @@ python-env:
     if "julia" in languages:
         env_makefile += '''julia-install-via-python:
 \t@echo ">> Installing Julia via juliacall..."
-\t@cd $(REPO_ROOT) && env/scripts/runpython env/scripts/install_julia.py
+\t@cd $(REPO_ROOT) && $(REPO_ROOT)/env/scripts/runpython $(REPO_ROOT)/env/scripts/install_julia.py
 '''
     
     (project_dir / "env" / "Makefile").write_text(env_makefile)
