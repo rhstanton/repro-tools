@@ -598,6 +598,7 @@ python-env:
     
     # Create runpython wrapper
     runpython = '''#!/usr/bin/env bash
+unset CDPATH
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PYTHON_BIN="$REPO_ROOT/.env/bin/python"
@@ -620,6 +621,7 @@ exec "$PYTHON_BIN" -u "$@"
     
     if "julia" in languages:
         runjulia = '''#!/usr/bin/env bash
+unset CDPATH
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUNDLED_JULIA="$REPO_ROOT/.julia/pyjuliapkg/install/bin/julia"
