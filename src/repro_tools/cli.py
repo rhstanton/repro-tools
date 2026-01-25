@@ -5,6 +5,12 @@ import sys
 from pathlib import Path
 
 
+def new_project():
+    """CLI entry point for new-project command."""
+    from repro_tools.scaffold import main_cli
+    main_cli()
+
+
 def record_provenance():
     """CLI entry point for repro-record command."""
     from repro_tools import auto_build_record
