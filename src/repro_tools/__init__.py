@@ -35,7 +35,7 @@ from repro_tools.publish import (
     publish_files,
     save_yml,
 )
-from repro_tools.validation import print_validation_errors
+from repro_tools.validation import print_validation_errors, validate_study_config
 
 __version__ = "0.2.0"
 
