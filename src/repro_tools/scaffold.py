@@ -595,6 +595,7 @@ python-env:
     
     # Create runpython wrapper
     runpython = '''#!/usr/bin/env bash
+set -euo pipefail
 unset CDPATH
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -605,11 +606,32 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
   exit 1
 fi
 
-export PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
-export JULIA_CONDAPKG_BACKEND=Null
+# Julia/Python bridge configuration
+export PYTHON_JULIACALL_HANDLE_SIGNALS=yes
+export PYTHON_JULIAPKG_PROJECT="$REPO_ROOT/.julia"
 export JULIA_PROJECT="$REPO_ROOT/env"
 export JULIA_DEPOT_PATH="$REPO_ROOT/.julia"
-export PYTHON_JULIACALL_HANDLE_SIGNALS=yes
+export JULIA_LOAD_PATH="$JULIA_PROJECT:$PYTHON_JULIAPKG_PROJECT:@stdlib"
+export JULIA_CONDAPKG_BACKEND=Null
+
+export PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+
+# Prefer bundled Julia; if not present, strip juliaup from PATH to force local install
+BUNDLED_JULIA="$REPO_ROOT/.julia/pyjuliapkg/install/bin/julia"
+if [[ -x "$BUNDLED_JULIA" ]]; then
+  export PYTHON_JULIAPKG_EXE="$BUNDLED_JULIA"
+else
+  # Strip juliaup from PATH to force juliacall to install Julia locally
+  SAFE_PATH=""
+  IFS=':' read -r -a PARTS <<< "${PATH:-}"
+  for P in "${PARTS[@]}"; do
+    if echo "$P" | tr '[:upper:]' '[:lower:]' | grep -q juliaup; then
+      continue
+    fi
+    SAFE_PATH="${SAFE_PATH:+$SAFE_PATH:}$P"
+  done
+  export PATH="$SAFE_PATH"
+fi
 
 exec "$PYTHON_BIN" -u "$@"
 '''
