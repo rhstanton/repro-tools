@@ -115,6 +115,32 @@ publish_files(
 
 ## Command-Line Tools
 
+### Create New Project
+
+```bash
+# Interactive scaffolding
+repro-new-project
+
+# Non-interactive with all languages
+repro-new-project my-project --python --julia --stata
+
+# Python-only project
+repro-new-project my-project --python
+
+# Custom configuration
+repro-new-project my-project \
+    --python --julia \
+    --gpu \
+    --studies "analysis1,analysis2"
+```
+
+Creates complete project structure with:
+- Environment setup (Python, Julia, Stata)
+- Example scripts for selected languages
+- Makefile with build targets
+- Git submodule for repro-tools
+- Documentation and configuration
+
 ### Record Provenance
 
 ```bash

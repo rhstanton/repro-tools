@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Project Scaffolding**: Complete Stata support in `scaffold.py`
+  - Generated `env/stata-packages.txt` for package management
+  - Generated `env/scripts/runstata` wrapper for executing .do files
+  - Generated `env/scripts/execute.ado` helper for proper logging
+  - Added Stata installation targets to `env/Makefile` (stata-env, stata-clean, stata-check)
+  - Stata packages installed locally to `.stata/ado/plus/`
+- **Example Files**: Auto-generate language-specific examples in `env/examples/`
+  - `sample_python.py` for Python
+  - `sample_julia.jl` for pure Julia
+  - `sample_juliacall.py` for Python/Julia interop
+  - `sample_stata.do` for Stata
+  - `README.md` with usage instructions
+
+### Changed
+- **Project Scaffolding**: Enhanced multi-language support
+  - All three languages (Python, Julia, Stata) fully integrated
+  - Example files generated based on selected languages
+  - Environment setup targets properly sequenced
+
 ## [0.2.0] - 2026-01-18
 
 ### Added
