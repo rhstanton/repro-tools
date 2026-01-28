@@ -9,7 +9,7 @@ from typing import Optional
 
 
 # Get path to templates directory
-TEMPLATE_DIR = Path(__file__).parent.parent.parent / "templates" / "standard"
+TEMPLATE_DIR = Path(__file__).parent / "templates" / "standard"
 
 
 def copy_template(src: Path, dst: Path, substitutions: dict[str, str] = None) -> None:

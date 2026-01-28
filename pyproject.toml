@@ -46,6 +46,14 @@ repro-report = "repro_tools.cli:report_gen"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+repro_tools = [
+    "templates/**/*",
+    "templates/**/.gitignore*",
+    "templates/**/.gitattributes*",
+    "lib/**/*"
+]
+
 [tool.black]
 line-length = 100
 target-version = ["py39", "py310", "py311", "py312"]

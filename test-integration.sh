@@ -67,7 +67,9 @@ if ! python -c "import repro_tools" 2>/dev/null; then
     pip install -e . > /dev/null 2>&1 || fail "Failed to install repro-tools"
 fi
 
-repro-new-project "Integration Test" test-project \
+repro-new-project \
+    --name "Integration Test" \
+    --slug test-project \
     --output-dir "$TEST_DIR" \
     --languages python \
     || fail "Project scaffolding failed"
