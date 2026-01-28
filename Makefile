@@ -10,7 +10,9 @@ help:
 	@echo "  make help      - Show this help message (default)"
 	@echo "  make all       - Set up environment and run tests"
 	@echo "  make env       - Create/update conda environment and install package"
-	@echo "  make test      - Run all tests"
+	@echo "  make test      - Run all tests (including slow Julia tests)"
+	@echo "  make test-fast - Run only fast tests (skip Julia installation)"
+	@echo "  make test-slow - Run only slow tests (Julia installation)"
 	@echo "  make test-q    - Run tests (quiet)"
 	@echo "  make coverage  - Run tests with coverage report"
 	@echo "  make lint      - Run all linters (black check + mypy)"
@@ -41,6 +43,16 @@ env:
 # Run tests
 test:
 	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -v
+
+# Run only fast tests (skip Julia installation tests)
+test-fast:
+	@echo "Running fast tests (skipping Julia installation)..."
+	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -v -m "not slow"
+
+# Run only slow tests (Julia installation)
+test-slow:
+	@echo "Running slow tests (Julia installation ~5-10 min)..."
+	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -v -m "slow"
 
 # Quick test (quiet mode)
 test-q:

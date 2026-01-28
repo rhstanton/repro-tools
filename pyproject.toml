@@ -70,6 +70,10 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
+markers = [
+    "slow: marks tests as slow (Julia installation ~5-10 min)",
+    "integration: marks tests as integration tests (vs unit tests)",
+]
 
 [tool.coverage.run]
 source = ["src/repro_tools"]

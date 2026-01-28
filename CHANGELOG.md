@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Integration Test Suite**: Comprehensive testing for project generation and environment setup
+  - 96 total tests (83 unit + 13 integration)
+  - Tests for project creation, `make environment`, and `make examples`
+  - Pytest markers: `@pytest.mark.slow` for Julia installation tests (~5-10 min each)
+  - Pytest markers: `@pytest.mark.integration` for integration vs unit tests
+  - Makefile targets: `make test-fast` (skip Julia), `make test-slow` (Julia only)
+  - `tests/README.md` documenting test organization and usage
+  - All fast tests passing (92/92) in ~2 minutes
+
+- **Conditional Example Execution**: Julia and Stata examples now auto-detect
+  - `make examples` checks if Julia files exist before running Julia examples
+  - `make examples` checks if Stata files exist and runstata is executable before running Stata
+  - Python-only projects no longer fail when Julia/Stata examples aren't installed
+  - Fixes issue where `make examples` would fail in single-language projects
+
 ### Fixed
+- **Package Import Bug**: Fixed `pyyaml` → `yaml` import name in integration tests
+  - Package name is `pyyaml` but imports as `import yaml`
+  - Integration tests now correctly check for PyYAML installation
+
 - **Stata Example Auto-Run**: `make examples` now automatically runs Stata example if Stata files exist
   - Checks if `env/examples/sample_stata.do` exists and `env/scripts/runstata` is executable
   - Runs `sample-stata` target automatically when both conditions met

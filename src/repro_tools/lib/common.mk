@@ -69,13 +69,21 @@ sample-stata: | $(OUT_LOG_DIR)
 	@echo "Running Stata example..."
 	$(STATA) env/examples/sample_stata.do 2>&1 | tee $(OUT_LOG_DIR)/sample_stata.log
 
-examples: sample-python sample-julia sample-juliacall
+examples: sample-python
+	@if [ -f env/examples/sample_julia.jl ] && [ -x env/scripts/runjulia ]; then \
+		echo ""; \
+		$(MAKE) sample-julia; \
+	fi
+	@if [ -f env/examples/sample_juliacall.py ]; then \
+		echo ""; \
+		$(MAKE) sample-juliacall; \
+	fi
 	@if [ -f env/examples/sample_stata.do ] && [ -x env/scripts/runstata ]; then \
 		echo ""; \
 		$(MAKE) sample-stata; \
 		echo "✓ All examples complete"; \
 	else \
-		echo "✓ All examples complete (Stata skipped - no Stata example found)"; \
+		echo "✓ All examples complete"; \
 	fi
 
 # ==============================================================================
