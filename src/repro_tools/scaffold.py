@@ -275,9 +275,10 @@ def generate_sample_data(project_dir: Path) -> None:
     data_file = project_dir / "data" / "sample.csv"
     with open(data_file, 'w', newline='\n') as f:
         writer = csv.writer(f, lineterminator='\n')
-        writer.writerow(['x', 'y'])
+        writer.writerow(['x', 'y', 'category'])
         for i in range(1, 11):
-            writer.writerow([i, i * 2 + (i % 3)])
+            category = 'A' if i <= 3 else ('B' if i <= 7 else 'C')
+            writer.writerow([i, i * 2 + (i % 3), category])
 
 
 def main_cli():
