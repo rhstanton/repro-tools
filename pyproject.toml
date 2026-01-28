@@ -31,7 +31,6 @@ dev = [
 ]
 
 [project.scripts]
-repro-new-project = "repro_tools.cli:new_project"
 repro-record = "repro_tools.cli:record_provenance"
 repro-publish = "repro_tools.cli:publish"
 repro-compare = "repro_tools.cli:compare"
@@ -48,9 +47,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 repro_tools = [
-    "templates/**/*",
-    "templates/**/.gitignore*",
-    "templates/**/.gitattributes*",
     "lib/**/*"
 ]
 
