@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Stata Example Auto-Run**: `make examples` now automatically runs Stata example if Stata files exist
+  - Checks if `env/examples/sample_stata.do` exists and `env/scripts/runstata` is executable
+  - Runs `sample-stata` target automatically when both conditions met
+  - Previously always skipped Stata even when installed
+
 ## [0.3.0] - 2026-01-28
 
 ### Added
