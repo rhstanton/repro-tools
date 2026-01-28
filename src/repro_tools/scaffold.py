@@ -122,6 +122,7 @@ def create_project(
     copy_template(TEMPLATE_DIR / "README.md.template", project_dir / "README.md", subs)
     copy_template(TEMPLATE_DIR / "QUICKSTART.md.template", project_dir / "QUICKSTART.md", subs)
     copy_template(TEMPLATE_DIR / ".gitignore.template", project_dir / ".gitignore", subs)
+    copy_template(TEMPLATE_DIR / ".gitattributes", project_dir / ".gitattributes", subs)
     print("  ✓ Core files created")
     
     # Copy shared/ files

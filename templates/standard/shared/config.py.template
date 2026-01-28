@@ -19,20 +19,51 @@ DATA_FILES = {
 }
 
 # ==============================================================================
+# Global Defaults
+# ==============================================================================
+# Default values applied to all studies unless overridden.
+# This implements a 3-level defaults system:
+#   Priority: DEFAULTS (lowest) < STUDIES[study] (medium) < command-line args (highest)
+#
+# Benefits:
+#   - DRY principle: common values defined once
+#   - Studies only specify what makes them unique
+#   - Easy to change defaults project-wide (e.g., switch to different dataset)
+#   - Command-line overrides (--xlabel, --ylabel, etc.) allow runtime flexibility
+
+DEFAULTS = {
+    "data": DATA_FILES["sample"],  # Default data source
+    "xlabel": "X Variable",  # Default x-axis label
+    "ylabel": "Value",  # Default y-axis label
+    "title": "Analysis",  # Default plot title
+    "groupby": None,  # Default grouping variable (None = no grouping)
+    "xvar": "x",  # Default x-axis variable
+    "table_agg": "mean",  # Default table aggregation function
+}
+
+# ==============================================================================
 # Study Definitions
 # ==============================================================================
+# Each study defines parameters for a single run of run_analysis.py.
+# Only specify values that differ from DEFAULTS to reduce repetition.
+#
+# Required fields for each study:
+#   - yvar: outcome variable (what to plot/analyze)
+#   - figure: output path for PDF figure
+#   - table: output path for LaTeX table
+#
+# Optional overrides:
+#   - Any field from DEFAULTS can be overridden per-study
+#   - Command-line args (--xlabel, --ylabel, etc.) override both
 
 STUDIES = {
     "sample_analysis": {
-        "data": DATA_FILES["sample"],
-        "xlabel": "X Variable",
-        "ylabel": "Y Variable",
-        "title": "Sample Analysis",
-        "groupby": None,
-        "yvar": "y",
-        "xvar": "x",
-        "table_agg": "mean",
-        "figure": OUTPUT_DIR / "figures" / "sample_analysis.pdf",
-        "table": OUTPUT_DIR / "tables" / "sample_analysis.tex",
+        # Only specify what differs from DEFAULTS
+        "ylabel": "Y Variable",  # Override default ylabel
+        "title": "Sample Analysis",  # Override default title
+        "yvar": "y",  # Required: study-specific outcome variable
+        "figure": OUTPUT_DIR / "figures" / "sample_analysis.pdf",  # Required
+        "table": OUTPUT_DIR / "tables" / "sample_analysis.tex",  # Required
+        # Inherits from DEFAULTS: data, xlabel, groupby, xvar, table_agg
     },
 }
