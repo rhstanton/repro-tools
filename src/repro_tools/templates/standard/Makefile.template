@@ -84,7 +84,7 @@ PAPER_TBL_DIR := $(PAPER_DIR)/tables
 # Include Generic Targets from repro-tools
 # ==============================================================================
 
-include lib/repro-tools/lib/common.mk
+include lib/repro-tools/src/repro_tools/lib/common.mk
 
 # ==============================================================================
 # Main Build Targets
