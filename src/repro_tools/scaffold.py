@@ -271,10 +271,10 @@ stata-check:
 
 
 def generate_sample_data(project_dir: Path) -> None:
-    """Generate sample CSV data."""
+    """Generate sample CSV data with LF line endings (Unix-style)."""
     data_file = project_dir / "data" / "sample.csv"
-    with open(data_file, 'w', newline='') as f:
-        writer = csv.writer(f)
+    with open(data_file, 'w', newline='\n') as f:
+        writer = csv.writer(f, lineterminator='\n')
         writer.writerow(['x', 'y'])
         for i in range(1, 11):
             writer.writerow([i, i * 2 + (i % 3)])
