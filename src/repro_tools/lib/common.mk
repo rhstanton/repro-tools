@@ -70,7 +70,13 @@ sample-stata: | $(OUT_LOG_DIR)
 	$(STATA) env/examples/sample_stata.do 2>&1 | tee $(OUT_LOG_DIR)/sample_stata.log
 
 examples: sample-python sample-julia sample-juliacall
-	@echo "✓ All examples complete (Stata skipped - run 'make sample-stata' if Stata is installed)"
+	@if [ -f env/examples/sample_stata.do ] && [ -x env/scripts/runstata ]; then \
+		echo ""; \
+		$(MAKE) sample-stata; \
+		echo "✓ All examples complete"; \
+	else \
+		echo "✓ All examples complete (Stata skipped - no Stata example found)"; \
+	fi
 
 # ==============================================================================
 # Cleanup Targets
