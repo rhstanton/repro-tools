@@ -1,0 +1,18 @@
+name: research_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pandas
+  - matplotlib
+  - numpy
+  - pyyaml
+  - jinja2
+  - pytest
+  - ruff
+  - mypy
+  - pip
+  - pip:
+    - docopt
+    - -e ../lib/repro-tools
+{julia_deps}

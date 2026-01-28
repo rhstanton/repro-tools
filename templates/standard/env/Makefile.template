@@ -1,0 +1,24 @@
+# Environment setup Makefile
+
+ENV_DIR := $(strip $(CURDIR))
+REPO_ROOT := $(abspath $(ENV_DIR)/..)
+
+.PHONY: all-env python-env julia-install-via-python{stata_target}
+
+all-env: python-env{julia_dep}{stata_dep}
+
+python-env:
+	@echo "📦 Installing Python environment..."
+	@if command -v mamba >/dev/null 2>&1; then \
+		mamba env create -f python.yml -p ../.env -y || mamba env update -f python.yml -p ../.env; \
+	elif command -v conda >/dev/null 2>&1; then \
+		conda env create -f python.yml -p ../.env -y || conda env update -f python.yml -p ../.env; \
+	else \
+		echo "❌ conda/mamba not found. Installing micromamba..."; \
+		bash scripts/install_micromamba.sh; \
+		micromamba env create -f python.yml -p ../.env -y; \
+	fi
+	@echo "✓ Python environment ready"
+
+{julia_section}
+{stata_section}

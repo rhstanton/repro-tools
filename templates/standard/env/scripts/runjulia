@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+unset CDPATH
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+BUNDLED_JULIA="$REPO_ROOT/.julia/pyjuliapkg/install/bin/julia"
+
+if [[ ! -x "$BUNDLED_JULIA" ]]; then
+  echo "❌ Julia not found. Run: make environment"
+  exit 1
+fi
+
+export JULIA_PROJECT="$REPO_ROOT/env"
+export JULIA_DEPOT_PATH="$REPO_ROOT/.julia"
+
+exec "$BUNDLED_JULIA" --project="$JULIA_PROJECT" "$@"
