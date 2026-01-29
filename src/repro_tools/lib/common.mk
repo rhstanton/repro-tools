@@ -40,7 +40,7 @@ environment: init-submodules
 	@echo "📦 Initializing git submodules..."
 	@git submodule update --init --recursive 2>/dev/null || echo "  ⚠️  Warning: git submodule update failed (not critical if already initialized)"
 	@echo ""
-	$(MAKE) -C env all-env
+	@$(MAKE) -C env all-env
 	@echo ""
 	@echo "✓ Environment ready!"
 	@echo ""
