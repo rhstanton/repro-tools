@@ -1,8 +1,11 @@
 """
-repro-tools: Reproducibility tools for research and teaching.
+repro-tools: Reproducibility library for research and teaching.
 
 Provides provenance tracking, publishing infrastructure, and quality assurance
 tools for computational research projects.
+
+This is a library package only. For creating new projects, see:
+https://github.com/rhstanton/project_template
 """
 
 from repro_tools.cli_utils import (

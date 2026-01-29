@@ -5,10 +5,14 @@ Location: `/home/stanton/01_work/infrastructure/40_lib/python/repro-tools/`
 
 ## Overview
 
-Extracted provenance tracking and publishing infrastructure from `project_template` into a reusable pip package suitable for:
-- Multiple research projects
+**repro-tools is a library package** that provides provenance tracking and publishing infrastructure for computational research. It contains **only library code** - no project creation or scaffolding.
+
+**For creating new projects**: Use [project_template](https://github.com/rhstanton/project_template), which provides a complete reference implementation that uses repro-tools.
+
+This library is suitable for:
+- Adding reproducibility to existing research projects
 - Teaching computational reproducibility
-- Sharing with collaborators
+- Sharing infrastructure across multiple projects
 
 ## Package Structure
 

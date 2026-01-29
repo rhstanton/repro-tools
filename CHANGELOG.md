@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Project Scaffolding**: Removed `scaffold.py`, templates, and `repro-new-project` CLI command
+  - Archived to `archive/` directory (removed in future version)
+  - Reason: Template duplication created maintenance overhead and sync issues
+  - **Migration**: Use [project_template](https://github.com/rhstanton/project_template) directly
+  - Clone project_template and customize with `bootstrap.py` instead of generating from templates
+  - repro-tools is now **library-only** (no project creation functionality)
+
 ### Added
 - **Integration Test Suite**: Comprehensive testing for project generation and environment setup
   - 96 total tests (83 unit + 13 integration)
@@ -128,10 +136,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No code changes required for parameter tuning
 
 ### Technical Notes
-- All enhancements upstreamed from `repro_template` battle-tested patterns
 - Maintains backward compatibility - existing projects work unchanged
-- Integration tests validate all features work together
-- Templates follow established conventions from fire/housing-analysis project
+- All features validated through comprehensive test suite
 
 ### Added (from previous Unreleased)
 - **Project Scaffolding**: Complete Stata support in `scaffold.py`

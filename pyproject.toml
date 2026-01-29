@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "repro-tools"
 version = "0.2.0"
-description = "Reproducibility tools for research and teaching"
+description = "Reproducibility library for computational research (provenance tracking and publishing)"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -45,11 +45,6 @@ repro-report = "repro_tools.cli:report_gen"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-data]
-repro_tools = [
-    "lib/**/*"
-]
-
 [tool.black]
 line-length = 100
 target-version = ["py39", "py310", "py311", "py312"]
@@ -65,10 +60,6 @@ addopts = [
     "--cov=repro_tools",
     "--cov-report=term-missing",
     "--cov-report=html",
-]
-markers = [
-    "slow: marks tests as slow (Julia installation ~5-10 min)",
-    "integration: marks tests as integration tests (vs unit tests)",
 ]
 
 [tool.coverage.run]

@@ -624,18 +624,6 @@ make publish
 
 ---
 
-## Related Projects
-
-**project_template**: Reference implementation using repro-tools
-- Location: `/home/stanton/01_work/research/project_template`
-- Shows: Best practices, Makefile integration, testing patterns
-
-**teaching/**: Example projects for students
-- Uses: repro-tools for reproducibility infrastructure
-- Focus: Economics research workflows
-
----
-
 ## Quick Reference
 
 ### Most Common User Patterns

@@ -2,6 +2,8 @@
 
 **5-minute guide to using repro-tools in your research project**
 
+> **Starting a new project?** Clone [project_template](https://github.com/rhstanton/project_template) instead - it includes repro-tools pre-configured. This guide is for adding repro-tools to existing projects.
+
 ## Installation
 
 ```bash

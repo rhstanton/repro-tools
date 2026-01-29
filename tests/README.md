@@ -9,12 +9,6 @@ Comprehensive test suite for the repro-tools package.
 - **test_publishing.py**: Publishing workflow and safety checks
 - **test_auto_provenance.py**: Automatic provenance system
 - **test_error_handling.py**: Error handling and validation
-- **test_scaffold.py**: Project scaffolding and file generation (60+ tests)
-
-### Integration Tests
-- **test_integration.py**: Full workflow tests (project creation, environment setup, examples)
-  - Marked with `@pytest.mark.integration`
-  - Slow tests marked with `@pytest.mark.slow` (Julia installation ~5-10 min)
 
 ## Running Tests
 
@@ -23,38 +17,14 @@ Comprehensive test suite for the repro-tools package.
 make test
 ```
 
-### Fast Tests Only (Skip Julia Installation)
-```bash
-make test-fast
-# Or directly:
-pytest -v -m "not slow"
-```
-
-### Slow Tests Only (Julia Installation)
-```bash
-make test-slow
-# Or directly:
-pytest -v -m "slow"
-```
-
-### Integration Tests Only
-```bash
-pytest -v -m integration
-```
-
-### Fast Integration Tests (No Julia)
-```bash
-pytest -v -m "integration and not slow"
-```
-
 ### Specific Test File
 ```bash
-pytest tests/test_scaffold.py -v
+pytest tests/test_core.py -v
 ```
 
 ### Specific Test Class or Function
 ```bash
-pytest tests/test_integration.py::TestPythonEnvironment::test_python_environment_setup -v
+pytest tests/test_publishing.py::TestPublishAnalyses::test_publish_clean_repo -v
 ```
 
 ### With Coverage
