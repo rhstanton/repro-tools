@@ -218,14 +218,8 @@ See `examples/` directory:
 # Set up environment (one command)
 make env
 
-# Run all tests (including slow Julia tests ~30-40 min)
+# Run tests
 make test
-
-# Run fast tests only (skip Julia installation, ~2 min)
-make test-fast
-
-# Run only slow Julia installation tests
-make test-slow
 
 # Run tests with coverage
 make coverage
@@ -236,31 +230,9 @@ make format
 # Type checking
 make typecheck
 
-# Run all checks (lint + test-fast)
+# Run all checks (lint + test)
 make check
 ```
-
-### Testing
-
-The test suite includes:
-- **Unit tests** (83 tests): Fast tests for core functionality
-- **Integration tests** (13 tests): End-to-end workflow validation
-  - **Fast** (9 tests, ~2 min): Python-only project generation and environment
-  - **Slow** (4 tests, ~30-40 min): Julia installation and multi-language setup
-
-Use pytest markers to run subsets:
-```bash
-# Fast tests only (recommended for CI)
-pytest -v -m "not slow"
-
-# Integration tests only
-pytest -v -m integration
-
-# All tests
-pytest -v
-```
-
-See `tests/README.md` for detailed testing documentation.
 
 ## License
 

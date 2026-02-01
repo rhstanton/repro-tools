@@ -257,11 +257,9 @@ lint:
 .PHONY: format
 format:
 	@echo "Auto-formatting code..."
-	@echo "  1. Running black formatter..."
-	@$(PYTHON) -m black run_analysis.py shared/*.py tests/*.py --exclude 'lib/repro-tools' || true
-	@echo "  2. Running ruff fixes (import sorting, trailing whitespace, etc.)..."
-	@$(PYTHON) -m ruff check --fix --select I,W,UP . --exclude 'lib/repro-tools' || true
-	@echo "  3. Running ruff format..."
+	@echo "  1. Running ruff fixes (import sorting, trailing whitespace, etc.)..."
+	@$(PYTHON) -m ruff check --fix . --exclude 'lib/repro-tools' || true
+	@echo "  2. Running ruff format..."
 	@$(PYTHON) -m ruff format . --exclude 'lib/repro-tools' || true
 	@echo ""
 	@echo "✓ Formatting complete"
@@ -269,12 +267,6 @@ format:
 .PHONY: format-check
 format-check:
 	@echo "Checking code formatting..."
-	@$(PYTHON) -m black --check run_analysis.py shared/*.py tests/*.py --exclude 'lib/repro-tools' || { \
-		echo ""; \
-		echo "Formatting check failed. Run:"; \
-		echo "  make format"; \
-		exit 1; \
-	}
 	@$(PYTHON) -m ruff format --check . --exclude 'lib/repro-tools' || { \
 		echo ""; \
 		echo "Ruff formatting check failed. Run:"; \

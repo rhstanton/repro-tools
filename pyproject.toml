@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "repro-tools"
 version = "0.2.0"
-description = "Reproducibility library for computational research (provenance tracking and publishing)"
+description = "Reproducibility tools for research and teaching"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -14,7 +14,6 @@ authors = [
 requires-python = ">=3.9"
 dependencies = [
     "pyyaml>=6.0",
-    "docopt>=0.6.2",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -31,6 +30,7 @@ dev = [
 ]
 
 [project.scripts]
+repro-new-project = "repro_tools.cli:new_project"
 repro-record = "repro_tools.cli:record_provenance"
 repro-publish = "repro_tools.cli:publish"
 repro-compare = "repro_tools.cli:compare"
