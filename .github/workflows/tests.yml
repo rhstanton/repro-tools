@@ -49,7 +49,7 @@ jobs:
       env:
         CI: true
       run: |
-        pip install pytest pytest-cov
+        pip install pytest pytest-cov docopt
         make test
 
     - name: Upload test results
