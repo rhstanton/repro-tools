@@ -17,7 +17,7 @@ try:
     import yaml
 except ImportError:
     print("Warning: PyYAML not available, outputting raw text instead", file=sys.stderr)
-    yaml = None
+    yaml = None  # type: ignore
 
 
 def get_git_info(repo_path):

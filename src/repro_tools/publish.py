@@ -157,7 +157,7 @@ def publish_analyses(
     project_root: Path,
     paper_root: Path,
     analysis_names: List[str],
-    kinds: List[str] = None,
+    kinds: Optional[List[str]] = None,
     allow_dirty: bool = False,
     require_not_behind: bool = True,
     require_current_head: bool = False,

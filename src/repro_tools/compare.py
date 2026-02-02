@@ -18,7 +18,7 @@ def sha256_file(filepath: Path) -> str:
     return h.hexdigest()
 
 
-def compare_pdfs(file1: Path, file2: Path) -> Union[str, Dict]:
+def compare_pdfs(file1: Path, file2: Path) -> Union[str, Dict, None]:
     """Compare two PDF files."""
     if not file1.exists() or not file2.exists():
         return None
@@ -65,7 +65,7 @@ def compare_pdfs(file1: Path, file2: Path) -> Union[str, Dict]:
     }
 
 
-def compare_text_files(file1: Path, file2: Path) -> Union[str, Dict]:
+def compare_text_files(file1: Path, file2: Path) -> Union[str, Dict, None]:
     """Compare two text files and show diff."""
     if not file1.exists() or not file2.exists():
         return None
