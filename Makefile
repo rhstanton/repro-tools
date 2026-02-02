@@ -3,7 +3,18 @@
 ENV_DIR := .env
 CONDA := conda
 
-.PHONY: help all env test clean lint format typecheck check coverage
+# Detect if we're in CI (no conda) or local dev (with conda)
+ifeq ($(CI),true)
+	# CI mode: use direct commands (packages installed via pip)
+	PYTHON := python
+	RUN_CMD :=
+else
+	# Local dev mode: use conda run
+	PYTHON := python
+	RUN_CMD := $(CONDA) run --prefix $(ENV_DIR)
+endif
+
+.PHONY: help all env test clean lint format typecheck check coverage format-check
 
 help:
 	@echo "Available targets:"
@@ -42,50 +53,54 @@ env:
 
 # Run tests
 test:
-	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -v
+	@$(RUN_CMD) pytest tests/ -v
 
 # Run only fast tests (skip Julia installation tests)
 test-fast:
 	@echo "Running fast tests (skipping Julia installation)..."
-	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -v -m "not slow"
+	@$(RUN_CMD) pytest tests/ -v -m "not slow"
 
 # Run only slow tests (Julia installation)
 test-slow:
 	@echo "Running slow tests (Julia installation ~5-10 min)..."
-	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -v -m "slow"
+	@$(RUN_CMD) pytest tests/ -v -m "slow"
 
 # Quick test (quiet mode)
 test-q:
-	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -q
+	@$(RUN_CMD) pytest tests/ -q
 
 # Run tests with coverage report
 coverage:
-	@$(CONDA) run --prefix $(ENV_DIR) pytest tests/ -v --cov=repro_tools --cov-report=term-missing --cov-report=html
+	@$(RUN_CMD) pytest tests/ -v --cov=repro_tools --cov-report=term-missing --cov-report=html
 	@echo ""
 	@echo "Coverage report generated in htmlcov/index.html"
 
-# Format code with black
+# Format code with ruff
 format:
-	@echo "Formatting code with black..."
-	@$(CONDA) run --prefix $(ENV_DIR) black src/ tests/ examples/
+	@echo "Formatting code with ruff..."
+	@$(RUN_CMD) ruff format src/ tests/
 	@echo "Code formatted!"
 
+# Check formatting without modifying
+format-check:
+	@echo "Checking code formatting with ruff..."
+	@$(RUN_CMD) ruff format --check src/ tests/
+	@echo "Format check complete!"
+
 # Run type checker
-typecheck:
+typecheck type-check:
 	@echo "Running mypy type checker..."
-	@$(CONDA) run --prefix $(ENV_DIR) mypy src/repro_tools
+	@$(RUN_CMD) mypy src/repro_tools
 	@echo "Type checking complete!"
 
-# Run all linters (black check + mypy)
+# Run linter
 lint:
-	@echo "Checking code formatting with black..."
-	@$(CONDA) run --prefix $(ENV_DIR) black --check src/ tests/ examples/
-	@echo "Running mypy type checker..."
-	@$(CONDA) run --prefix $(ENV_DIR) mypy src/repro_tools
-	@echo "All linting checks passed!"
+	@echo "Running ruff linter..."
+	@$(RUN_CMD) ruff check src/ tests/
+	@echo "Linting complete!"
 
-# Run all checks (lint + test)
-check: lint test
+# Run all checks (lint + format-check + type-check)
+check: lint format-check type-check
 	@echo ""
 	@echo "All checks passed!"
 
