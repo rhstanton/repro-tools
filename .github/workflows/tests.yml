@@ -40,7 +40,7 @@ jobs:
       env:
         CI: true
       run: |
-        pip install ruff mypy
+        pip install ruff mypy types-PyYAML types-docopt
         make lint
         make format-check
         make type-check
