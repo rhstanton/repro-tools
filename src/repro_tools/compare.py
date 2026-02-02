@@ -6,7 +6,7 @@ import difflib
 import hashlib
 import subprocess
 from pathlib import Path
-from typing import Optional, Union, Dict, List
+from typing import Dict, List, Optional, Union
 
 
 def sha256_file(filepath: Path) -> str:
@@ -144,15 +144,15 @@ def compare_outputs(
 
         output_lines.append(f"\n📊 Figure: {artifact}.pdf")
         if not current_fig.exists():
-            output_lines.append(f"   ⚠️  Current version not found")
+            output_lines.append("   ⚠️  Current version not found")
         elif not ref_fig.exists():
-            output_lines.append(f"   ⚠️  Reference version not found (new artifact?)")
+            output_lines.append("   ⚠️  Reference version not found (new artifact?)")
         else:
             result = compare_pdfs(current_fig, ref_fig)
             if result == "identical":
-                output_lines.append(f"   ✅ Identical")
+                output_lines.append("   ✅ Identical")
             elif isinstance(result, dict):
-                output_lines.append(f"   ❌ Different")
+                output_lines.append("   ❌ Different")
                 output_lines.append(f"      Current hash:   {result['hash1']}...")
                 output_lines.append(f"      Reference hash: {result['hash2']}...")
                 if "metadata1" in result:
@@ -166,19 +166,19 @@ def compare_outputs(
 
         output_lines.append(f"\n📋 Table: {artifact}.tex")
         if not current_tbl.exists():
-            output_lines.append(f"   ⚠️  Current version not found")
+            output_lines.append("   ⚠️  Current version not found")
         elif not ref_tbl.exists():
-            output_lines.append(f"   ⚠️  Reference version not found (new artifact?)")
+            output_lines.append("   ⚠️  Reference version not found (new artifact?)")
         else:
             result = compare_text_files(current_tbl, ref_tbl)
             if result == "identical":
-                output_lines.append(f"   ✅ Identical")
+                output_lines.append("   ✅ Identical")
             elif isinstance(result, dict):
                 output_lines.append(f"   ❌ Different ({result['lines_changed']} lines changed)")
                 all_identical = False
 
                 if verbose and result["diff_preview"]:
-                    output_lines.append(f"\n   Diff preview:")
+                    output_lines.append("\n   Diff preview:")
                     for line in result["diff_preview"].split("\n"):
                         output_lines.append(f"   {line}")
 

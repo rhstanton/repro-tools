@@ -6,12 +6,12 @@ Tests malformed configs, missing files, corrupted YAML, etc.
 
 from __future__ import annotations
 
-import pytest
-import tempfile
 import sys
-import os
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+import pytest
+import yaml
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -177,7 +177,7 @@ class TestCorruptedYAML:
         yaml_file = tmp_path / "corrupted.yml"
         yaml_file.write_text("{ malformed: yaml: content:: [")
 
-        with pytest.raises(Exception):  # PyYAML will raise various exceptions
+        with pytest.raises((yaml.YAMLError, ValueError)):  # PyYAML exceptions
             load_yml(yaml_file)
 
     def test_empty_provenance_yaml(self, tmp_path):
@@ -228,7 +228,7 @@ class TestPublishingEdgeCases:
         # Try to publish kind that doesn't exist in output structure
         mock_gitinfo = {"is_git_repo": False, "commit": "", "branch": ""}
         with patch("repro_tools.publish.check_git_policy", return_value=mock_gitinfo):
-            result = publish_analyses(
+            publish_analyses(
                 paper_root=paper_root,
                 project_root=project_root,
                 analysis_names=["test"],

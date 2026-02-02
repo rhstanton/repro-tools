@@ -12,6 +12,7 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+
 import yaml
 
 
@@ -379,7 +380,7 @@ class PreSubmitChecker:
             self.results.append(
                 CheckResult(
                     "Provenance Current",
-                    self.strict == False,
+                    not self.strict,
                     f"{len(stale_artifacts)} artifacts from old commits",
                     f"Stale: {', '.join(stale_artifacts)}\nRun: make clean && make all",
                 )

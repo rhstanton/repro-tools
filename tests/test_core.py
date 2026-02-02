@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from repro_tools import git_state, sha256_file, write_build_record
 
 

@@ -7,10 +7,8 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from repro_tools import (
     auto_build_record,
-    enable_auto_provenance,
     auto_provenance_from_config,
 )
 

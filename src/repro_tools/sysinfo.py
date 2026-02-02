@@ -7,10 +7,10 @@ Creates system_info.yml with OS, Python, Julia, package versions, etc.
 """
 import argparse
 import platform
-import sys
 import subprocess
-from pathlib import Path
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 try:
     import yaml
@@ -160,7 +160,7 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
     # Gather information
-    print(f"Gathering system information...")
+    print("Gathering system information...")
     info = get_system_info(args.repo_root.resolve())
 
     # Write to file

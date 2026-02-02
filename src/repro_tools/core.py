@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-
 # Global flag to track if provenance should be recorded
 _should_record_provenance = True
 _provenance_recorded = False
@@ -186,7 +185,6 @@ def auto_build_record(
         artifact_name: Override auto-detected name (optional)
         repo_root: Override auto-detected repo root (optional)
     """
-    import inspect
     import sys
 
     # Get the calling script's file path
@@ -263,13 +261,13 @@ def auto_provenance_from_config(artifact_name: str) -> None:
 
         _provenance_recorded = True
 
-    except ImportError as e:
+    except ImportError:
         print(
-            f"Warning: enable_auto_provenance requires config.py with ANALYSES dictionary",
+            "Warning: enable_auto_provenance requires config.py with ANALYSES dictionary",
             file=sys.stderr,
         )
-        print(f"  For standalone scripts, use auto_build_record() instead", file=sys.stderr)
-        print(f"  See: repro-tools documentation", file=sys.stderr)
+        print("  For standalone scripts, use auto_build_record() instead", file=sys.stderr)
+        print("  See: repro-tools documentation", file=sys.stderr)
     except Exception as e:
         print(f"Warning: Failed to record provenance: {e}", file=sys.stderr)
 

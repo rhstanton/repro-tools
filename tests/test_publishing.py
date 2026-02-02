@@ -1,18 +1,16 @@
 """Tests for publishing functionality."""
 
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
 import pytest
 import yaml
-
 from repro_tools import (
+    copy_if_changed,
     publish_analyses,
     publish_files,
     write_build_record,
-    copy_if_changed,
 )
 
 
@@ -150,7 +148,7 @@ class TestPublishAnalyses:
         repo = analysis_artifacts["repo"]
         paper_dir = repo / "paper"
 
-        result = publish_analyses(
+        publish_analyses(
             project_root=repo,
             paper_root=paper_dir,
             analysis_names=["test_analysis"],
@@ -196,7 +194,7 @@ class TestPublishAnalyses:
         (repo / "dirty.txt").write_text("uncommitted change")
 
         # Should succeed with allow_dirty=True
-        result = publish_analyses(
+        publish_analyses(
             project_root=repo,
             paper_root=paper_dir,
             analysis_names=["test_analysis"],
@@ -295,7 +293,7 @@ class TestPublishAnalyses:
             )
 
         # Should succeed with allow_dirty=True
-        result = publish_analyses(
+        publish_analyses(
             project_root=repo,
             paper_root=paper_dir,
             analysis_names=["test_analysis"],
@@ -478,7 +476,7 @@ class TestGitSafetyChecks:
             text=True,
             check=True,
         )
-        current_commit = result.stdout.strip()
+        result.stdout.strip()
 
         # Make a new commit (so artifacts are from old HEAD)
         (repo / "new_file.txt").write_text("new content")

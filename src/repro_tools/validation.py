@@ -100,7 +100,7 @@ def validate_study_config(
     if table_agg:
         if valid_aggregations is None:
             valid_aggregations = ["mean", "sum", "median", "min", "max", "count", "std", "var"]
-        
+
         if table_agg not in valid_aggregations:
             errors.append(
                 f"Invalid table_agg '{table_agg}'. Must be one of: {', '.join(valid_aggregations)}"

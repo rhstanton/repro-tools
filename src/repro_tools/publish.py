@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 import yaml
 
-from repro_tools.core import git_state, sha256_file, now_utc_iso
+from repro_tools.core import git_state, now_utc_iso, sha256_file
 
 
 def load_yml(path: Path) -> Dict[str, Any]:
@@ -302,10 +302,10 @@ def publish_files(
         # Determine destination
         try:
             rel_path = src.relative_to(output_dir)
-        except ValueError:
+        except ValueError as e:
             raise SystemExit(
                 f"File {src} is not in output/ directory. " "Only output files can be published."
-            )
+            ) from e
 
         dst = paper_root / rel_path
 
