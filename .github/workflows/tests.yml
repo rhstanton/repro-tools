@@ -37,6 +37,8 @@ jobs:
         pip install -e .
 
     - name: Run code quality checks
+      env:
+        CI: true
       run: |
         pip install ruff mypy
         make lint
@@ -44,6 +46,8 @@ jobs:
         make type-check
 
     - name: Run tests
+      env:
+        CI: true
       run: |
         pip install pytest pytest-cov
         make test
