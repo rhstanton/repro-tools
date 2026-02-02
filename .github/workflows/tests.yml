@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install GNU Make 4.3+ on macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install make
+        echo "$(brew --prefix)/opt/make/libexec/gnubin" >> $GITHUB_PATH
+
+    - name: Verify Make version
+      run: make --version | head -1
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install package in editable mode
+      run: |
+        pip install -e .
+
+    - name: Run code quality checks
+      run: |
+        pip install ruff mypy
+        make lint
+        make format-check
+        make type-check
+
+    - name: Run tests
+      run: |
+        pip install pytest pytest-cov
+        make test
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.os }}
+        path: |
+          .coverage
+          htmlcov/
