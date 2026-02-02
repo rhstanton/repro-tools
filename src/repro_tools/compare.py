@@ -134,9 +134,9 @@ def compare_outputs(
     all_identical = True
 
     for artifact in artifacts:
-        output_lines.append(f"{'='*60}")
+        output_lines.append(f"{'=' * 60}")
         output_lines.append(f"Artifact: {artifact}")
-        output_lines.append(f"{'='*60}")
+        output_lines.append(f"{'=' * 60}")
 
         # Compare figure
         current_fig = current_dir / "figures" / f"{artifact}.pdf"
@@ -174,7 +174,9 @@ def compare_outputs(
             if result == "identical":
                 output_lines.append("   ✅ Identical")
             elif isinstance(result, dict):
-                output_lines.append(f"   ❌ Different ({result['lines_changed']} lines changed)")
+                output_lines.append(
+                    f"   ❌ Different ({result['lines_changed']} lines changed)"
+                )
                 all_identical = False
 
                 if verbose and result["diff_preview"]:
@@ -184,7 +186,7 @@ def compare_outputs(
 
         output_lines.append("")
 
-    output_lines.append(f"{'='*60}")
+    output_lines.append(f"{'=' * 60}")
     if all_identical:
         output_lines.append("✅ All outputs identical to reference")
     else:

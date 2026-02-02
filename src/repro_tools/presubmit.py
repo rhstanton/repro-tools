@@ -8,6 +8,7 @@ Runs all checks to ensure package is ready for journal submission.
 Usage:
     python scripts/pre_submit_check.py [--strict]
 """
+
 import argparse
 import subprocess
 import sys
@@ -214,7 +215,9 @@ class PreSubmitChecker:
 
         # Read checksums
         with open(checksums_file) as f:
-            lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+            lines = [
+                line.strip() for line in f if line.strip() and not line.startswith("#")
+            ]
 
         all_match = True
         for line in lines:

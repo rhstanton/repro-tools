@@ -240,7 +240,9 @@ class TestPublishAnalyses:
         )
 
         # Try to publish - should fail because artifacts were BUILT dirty
-        with pytest.raises(SystemExit, match="artifacts were built from a dirty working tree"):
+        with pytest.raises(
+            SystemExit, match="artifacts were built from a dirty working tree"
+        ):
             publish_analyses(
                 project_root=repo,
                 paper_root=paper_dir,
@@ -283,7 +285,9 @@ class TestPublishAnalyses:
         )
 
         # Should fail unless allow_dirty=True for artifacts
-        with pytest.raises(SystemExit, match="artifacts were built from a dirty working tree"):
+        with pytest.raises(
+            SystemExit, match="artifacts were built from a dirty working tree"
+        ):
             publish_analyses(
                 project_root=repo,
                 paper_root=paper_dir,
@@ -597,7 +601,10 @@ class TestIncrementalPublishing:
 
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Add analysis1"], cwd=repo, check=True, capture_output=True
+            ["git", "commit", "-m", "Add analysis1"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
         )
 
         publish_analyses(
@@ -629,7 +636,10 @@ class TestIncrementalPublishing:
 
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Add analysis2"], cwd=repo, check=True, capture_output=True
+            ["git", "commit", "-m", "Add analysis2"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
         )
 
         publish_analyses(
@@ -687,7 +697,10 @@ class TestIncrementalPublishing:
 
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Add analysis"], cwd=repo, check=True, capture_output=True
+            ["git", "commit", "-m", "Add analysis"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
         )
 
         # Publish analysis
@@ -707,7 +720,9 @@ class TestIncrementalPublishing:
         # Analysis files should exist
         assert (paper_dir / "figures" / "analysis1.pdf").exists()
         assert (paper_dir / "tables" / "analysis1.tex").exists()
-        assert (paper_dir / "figures" / "analysis1.pdf").read_text() == "analysis figure"
+        assert (
+            paper_dir / "figures" / "analysis1.pdf"
+        ).read_text() == "analysis figure"
 
     def test_republish_after_rebuild(self, temp_git_repo):
         """Test republishing after rebuilding an analysis with changes."""
@@ -738,7 +753,10 @@ class TestIncrementalPublishing:
 
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Version 1"], cwd=repo, check=True, capture_output=True
+            ["git", "commit", "-m", "Version 1"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
         )
 
         # First publish
@@ -749,7 +767,9 @@ class TestIncrementalPublishing:
             verbose=False,
         )
 
-        assert (paper_dir / "figures" / "analysis1.pdf").read_text() == "version 1 figure"
+        assert (
+            paper_dir / "figures" / "analysis1.pdf"
+        ).read_text() == "version 1 figure"
 
         # Rebuild with changes
         fig.write_text("version 2 figure - updated!")
@@ -758,7 +778,10 @@ class TestIncrementalPublishing:
         # Commit changes first so repo is clean
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Modify outputs"], cwd=repo, check=True, capture_output=True
+            ["git", "commit", "-m", "Modify outputs"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
         )
 
         write_build_record(
@@ -772,7 +795,10 @@ class TestIncrementalPublishing:
 
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Version 2"], cwd=repo, check=True, capture_output=True
+            ["git", "commit", "-m", "Version 2"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
         )
 
         # Republish
@@ -787,7 +813,9 @@ class TestIncrementalPublishing:
         assert (
             paper_dir / "figures" / "analysis1.pdf"
         ).read_text() == "version 2 figure - updated!"
-        assert (paper_dir / "tables" / "analysis1.tex").read_text() == "version 2 table - updated!"
+        assert (
+            paper_dir / "tables" / "analysis1.tex"
+        ).read_text() == "version 2 table - updated!"
 
     def test_publish_analysis_with_missing_output_kind(self, temp_git_repo):
         """Test publishing when analysis only has some output types."""
@@ -815,7 +843,10 @@ class TestIncrementalPublishing:
 
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Add fig_only"], cwd=repo, check=True, capture_output=True
+            ["git", "commit", "-m", "Add fig_only"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
         )
 
         # Publish - should handle missing table gracefully

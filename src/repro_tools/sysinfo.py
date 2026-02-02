@@ -5,6 +5,7 @@ log_system_info.py
 Captures computational environment details for reproducibility.
 Creates system_info.yml with OS, Python, Julia, package versions, etc.
 """
+
 import argparse
 import platform
 import subprocess
@@ -91,7 +92,11 @@ def get_julia_info(repo_path):
             text=True,
             check=False,
         )
-        version = version_result.stdout.strip() if version_result.returncode == 0 else "unknown"
+        version = (
+            version_result.stdout.strip()
+            if version_result.returncode == 0
+            else "unknown"
+        )
 
         # Get package status
         env_project = repo_path / "env" / "Project.toml"
@@ -105,7 +110,9 @@ def get_julia_info(repo_path):
                 check=False,
             )
             packages = (
-                pkg_result.stdout if pkg_result.returncode == 0 else "Could not get package list"
+                pkg_result.stdout
+                if pkg_result.returncode == 0
+                else "Could not get package list"
             )
         else:
             packages = "No Project.toml found"

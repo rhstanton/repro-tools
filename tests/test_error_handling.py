@@ -222,7 +222,7 @@ class TestPublishingEdgeCases:
         prov_file = output_dir / "provenance" / "test.yml"
         prov_file.parent.mkdir(parents=True)
         prov_file.write_text(
-            "artifact: test\n" "built_at_utc: '2026-01-18T12:00:00+00:00'\n" "outputs: []\n"
+            "artifact: test\nbuilt_at_utc: '2026-01-18T12:00:00+00:00'\noutputs: []\n"
         )
 
         # Try to publish kind that doesn't exist in output structure
@@ -299,7 +299,13 @@ class TestCommandRecording:
         )
 
         prov = load_yml(out_meta)
-        assert prov["command"] == ["python", "script.py", "--arg", "value with spaces", "--flag"]
+        assert prov["command"] == [
+            "python",
+            "script.py",
+            "--arg",
+            "value with spaces",
+            "--flag",
+        ]
 
     def test_auto_build_record_uses_sys_argv(self, tmp_path):
         """auto_build_record should use sys.argv for command."""

@@ -8,6 +8,7 @@ Creates HTML/Markdown report with all provenance, system info, and outputs.
 Usage:
     python scripts/generate_replication_report.py [--format html|markdown]
 """
+
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
@@ -187,15 +188,15 @@ class ReplicationReportGenerator:
     <h2>💻 Computational Environment</h2>
     <table>
         <tr><th>Component</th><th>Version/Details</th></tr>
-        <tr><td>Operating System</td><td>{sys_data.get('os', 'N/A')}</td></tr>
-        <tr><td>Architecture</td><td>{sys_data.get('architecture', 'N/A')}</td></tr>
-        <tr><td>Python Version</td><td>{sys_data.get('python_version', 'N/A').split()[0]}</td></tr>
+        <tr><td>Operating System</td><td>{sys_data.get("os", "N/A")}</td></tr>
+        <tr><td>Architecture</td><td>{sys_data.get("architecture", "N/A")}</td></tr>
+        <tr><td>Python Version</td><td>{sys_data.get("python_version", "N/A").split()[0]}</td></tr>
     </table>
 
     <h3>Python Packages</h3>
     <details>
-        <summary>View installed packages ({len(system_info.get('python_packages', {}))} packages)</summary>
-        <pre>{yaml.dump(system_info.get('python_packages', {}), default_flow_style=False)}</pre>
+        <summary>View installed packages ({len(system_info.get("python_packages", {}))} packages)</summary>
+        <pre>{yaml.dump(system_info.get("python_packages", {}), default_flow_style=False)}</pre>
     </details>
 """
             )
@@ -203,14 +204,14 @@ class ReplicationReportGenerator:
             self.content.append(
                 f"""## Computational Environment
 
-- **Operating System:** {sys_data.get('os', 'N/A')}
-- **Architecture:** {sys_data.get('architecture', 'N/A')}
-- **Python Version:** {sys_data.get('python_version', 'N/A').split()[0]}
+- **Operating System:** {sys_data.get("os", "N/A")}
+- **Architecture:** {sys_data.get("architecture", "N/A")}
+- **Python Version:** {sys_data.get("python_version", "N/A").split()[0]}
 
 ### Python Packages
 
 ```
-{yaml.dump(system_info.get('python_packages', {}), default_flow_style=False)}
+{yaml.dump(system_info.get("python_packages", {}), default_flow_style=False)}
 ```
 
 """
@@ -224,7 +225,9 @@ class ReplicationReportGenerator:
             return
 
         with open(checksums_file) as f:
-            lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+            lines = [
+                line.strip() for line in f if line.strip() and not line.startswith("#")
+            ]
 
         if self.format == "html":
             self.content.append(
@@ -260,7 +263,9 @@ class ReplicationReportGenerator:
                 if len(parts) >= 2:
                     checksum = parts[0]
                     filename = " ".join(parts[1:])
-                    self.content.append(f"""| `{filename}` | `{checksum[:16]}...` |\n""")
+                    self.content.append(
+                        f"""| `{filename}` | `{checksum[:16]}...` |\n"""
+                    )
 
             self.content.append("\n")
 

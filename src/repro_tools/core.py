@@ -33,7 +33,9 @@ def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
 def _run_git(args: List[str], cwd: Path) -> Optional[str]:
     """Run git command and return output, or None if failed."""
     try:
-        out = subprocess.check_output(["git", *args], cwd=str(cwd), stderr=subprocess.DEVNULL)
+        out = subprocess.check_output(
+            ["git", *args], cwd=str(cwd), stderr=subprocess.DEVNULL
+        )
         return out.decode("utf-8").strip()
     except Exception:
         return None
@@ -60,7 +62,9 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
     # Check for uncommitted changes
     try:
         subprocess.check_call(["git", "diff", "--quiet"], cwd=str(repo_root))
-        subprocess.check_call(["git", "diff", "--cached", "--quiet"], cwd=str(repo_root))
+        subprocess.check_call(
+            ["git", "diff", "--cached", "--quiet"], cwd=str(repo_root)
+        )
     except Exception:
         dirty = True
 
@@ -71,7 +75,9 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
 
     ahead = behind = None
     if upstream:
-        lr = _run_git(["rev-list", "--left-right", "--count", f"HEAD...{upstream}"], cwd=repo_root)
+        lr = _run_git(
+            ["rev-list", "--left-right", "--count", f"HEAD...{upstream}"], cwd=repo_root
+        )
         if lr and "\t" in lr:
             left, right = lr.split("\t")
             # left = commits only in HEAD (ahead), right = commits only in upstream (behind)
@@ -243,9 +249,13 @@ def auto_provenance_from_config(artifact_name: str) -> None:
 
         if artifact_name not in config.ANALYSES:
             print(
-                f"Warning: Unknown analysis '{artifact_name}', skipping provenance", file=sys.stderr
+                f"Warning: Unknown analysis '{artifact_name}', skipping provenance",
+                file=sys.stderr,
             )
-            print(f"  Available analyses: {', '.join(config.ANALYSES.keys())}", file=sys.stderr)
+            print(
+                f"  Available analyses: {', '.join(config.ANALYSES.keys())}",
+                file=sys.stderr,
+            )
             return
 
         analysis_cfg = config.ANALYSES[artifact_name]
@@ -253,10 +263,15 @@ def auto_provenance_from_config(artifact_name: str) -> None:
         write_build_record(
             out_meta=analysis_cfg["outputs"]["provenance"],
             artifact_name=artifact_name,
-            command=sys.argv if sys.argv[0].endswith(".py") else ["make", artifact_name],
+            command=sys.argv
+            if sys.argv[0].endswith(".py")
+            else ["make", artifact_name],
             repo_root=config.REPO_ROOT,
             inputs=analysis_cfg["inputs"],
-            outputs=[analysis_cfg["outputs"]["figure"], analysis_cfg["outputs"]["table"]],
+            outputs=[
+                analysis_cfg["outputs"]["figure"],
+                analysis_cfg["outputs"]["table"],
+            ],
         )
 
         _provenance_recorded = True
@@ -266,7 +281,9 @@ def auto_provenance_from_config(artifact_name: str) -> None:
             "Warning: enable_auto_provenance requires config.py with ANALYSES dictionary",
             file=sys.stderr,
         )
-        print("  For standalone scripts, use auto_build_record() instead", file=sys.stderr)
+        print(
+            "  For standalone scripts, use auto_build_record() instead", file=sys.stderr
+        )
         print("  See: repro-tools documentation", file=sys.stderr)
     except Exception as e:
         print(f"Warning: Failed to record provenance: {e}", file=sys.stderr)

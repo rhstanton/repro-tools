@@ -99,7 +99,16 @@ def validate_study_config(
     table_agg = config.get("table_agg")
     if table_agg:
         if valid_aggregations is None:
-            valid_aggregations = ["mean", "sum", "median", "min", "max", "count", "std", "var"]
+            valid_aggregations = [
+                "mean",
+                "sum",
+                "median",
+                "min",
+                "max",
+                "count",
+                "std",
+                "var",
+            ]
 
         if table_agg not in valid_aggregations:
             errors.append(

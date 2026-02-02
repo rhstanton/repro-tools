@@ -111,7 +111,9 @@ def check_artifacts_from_clean_tree(
         msg = "Refusing to publish: artifacts were built from a dirty working tree:\n"
         for name in dirty_artifacts:
             msg += f"  {name}\n"
-        msg += "\nRebuild from clean tree: git commit/stash, then make clean && make all\n"
+        msg += (
+            "\nRebuild from clean tree: git commit/stash, then make clean && make all\n"
+        )
         msg += "Or set allow_dirty=True to allow."
         raise SystemExit(msg)
 
@@ -190,12 +192,16 @@ def publish_analyses(
     # Check artifacts
     out_prov_dir = project_root / "output" / "provenance"
 
-    check_artifacts_from_clean_tree(analysis_names, out_prov_dir, allow_dirty=allow_dirty)
+    check_artifacts_from_clean_tree(
+        analysis_names, out_prov_dir, allow_dirty=allow_dirty
+    )
 
     if require_current_head and gitinfo.get("is_git_repo"):
         current_commit = gitinfo.get("commit", "")
         if current_commit:
-            check_artifacts_from_current_head(analysis_names, out_prov_dir, current_commit)
+            check_artifacts_from_current_head(
+                analysis_names, out_prov_dir, current_commit
+            )
 
     # Load or initialize paper provenance
     prov_path = paper_root / "provenance.yml"
@@ -212,7 +218,9 @@ def publish_analyses(
     for name in analysis_names:
         meta_path = out_prov_dir / f"{name}.yml"
         if not meta_path.exists():
-            raise SystemExit(f"Missing build record {meta_path}. Build first: make {name}")
+            raise SystemExit(
+                f"Missing build record {meta_path}. Build first: make {name}"
+            )
         meta = load_yml(meta_path)
 
         prov["artifacts"].setdefault(name, {})
@@ -304,7 +312,8 @@ def publish_files(
             rel_path = src.relative_to(output_dir)
         except ValueError as e:
             raise SystemExit(
-                f"File {src} is not in output/ directory. " "Only output files can be published."
+                f"File {src} is not in output/ directory. "
+                "Only output files can be published."
             ) from e
 
         dst = paper_root / rel_path

@@ -10,11 +10,19 @@ def record_provenance():
     from repro_tools import auto_build_record
 
     parser = argparse.ArgumentParser(description="Record build provenance")
-    parser.add_argument("--out-meta", type=Path, required=True, help="Output provenance YAML")
-    parser.add_argument("--inputs", nargs="+", type=Path, required=True, help="Input files")
-    parser.add_argument("--outputs", nargs="+", type=Path, required=True, help="Output files")
+    parser.add_argument(
+        "--out-meta", type=Path, required=True, help="Output provenance YAML"
+    )
+    parser.add_argument(
+        "--inputs", nargs="+", type=Path, required=True, help="Input files"
+    )
+    parser.add_argument(
+        "--outputs", nargs="+", type=Path, required=True, help="Output files"
+    )
     parser.add_argument("--artifact-name", help="Override auto-detected artifact name")
-    parser.add_argument("--repo-root", type=Path, help="Override auto-detected repo root")
+    parser.add_argument(
+        "--repo-root", type=Path, help="Override auto-detected repo root"
+    )
 
     args = parser.parse_args()
 
@@ -36,11 +44,20 @@ def publish():
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
     # Analyses mode
-    analyses_parser = subparsers.add_parser("analyses", help="Publish all outputs from analyses")
-    analyses_parser.add_argument("analyses", nargs="+", help="Analysis names to publish")
-    analyses_parser.add_argument("--paper-root", type=Path, required=True, help="Paper directory")
+    analyses_parser = subparsers.add_parser(
+        "analyses", help="Publish all outputs from analyses"
+    )
     analyses_parser.add_argument(
-        "--project-root", type=Path, required=True, help="Project/analysis repository root"
+        "analyses", nargs="+", help="Analysis names to publish"
+    )
+    analyses_parser.add_argument(
+        "--paper-root", type=Path, required=True, help="Paper directory"
+    )
+    analyses_parser.add_argument(
+        "--project-root",
+        type=Path,
+        required=True,
+        help="Project/analysis repository root",
     )
     analyses_parser.add_argument(
         "--allow-dirty", type=int, default=0, help="Allow dirty working tree"
@@ -49,17 +66,27 @@ def publish():
         "--require-not-behind", type=int, default=1, help="Require branch up-to-date"
     )
     analyses_parser.add_argument(
-        "--require-current-head", type=int, default=0, help="Require artifacts from current HEAD"
+        "--require-current-head",
+        type=int,
+        default=0,
+        help="Require artifacts from current HEAD",
     )
 
     # Files mode
     files_parser = subparsers.add_parser("files", help="Publish specific files")
     files_parser.add_argument("files", nargs="+", type=Path, help="Files to publish")
-    files_parser.add_argument("--paper-root", type=Path, required=True, help="Paper directory")
     files_parser.add_argument(
-        "--project-root", type=Path, required=True, help="Project/analysis repository root"
+        "--paper-root", type=Path, required=True, help="Paper directory"
     )
-    files_parser.add_argument("--allow-dirty", type=int, default=0, help="Allow dirty working tree")
+    files_parser.add_argument(
+        "--project-root",
+        type=Path,
+        required=True,
+        help="Project/analysis repository root",
+    )
+    files_parser.add_argument(
+        "--allow-dirty", type=int, default=0, help="Allow dirty working tree"
+    )
     files_parser.add_argument(
         "--require-not-behind", type=int, default=1, help="Require branch up-to-date"
     )
@@ -91,13 +118,18 @@ def compare():
 
     parser = argparse.ArgumentParser(description="Compare current vs reference outputs")
     parser.add_argument(
-        "--reference", type=Path, default="paper", help="Reference directory (default: paper)"
+        "--reference",
+        type=Path,
+        default="paper",
+        help="Reference directory (default: paper)",
     )
     parser.add_argument("--artifacts", nargs="*", help="Specific artifacts to compare")
     parser.add_argument(
         "--current-dir", type=Path, default="output", help="Current output directory"
     )
-    parser.add_argument("--verbose", action="store_true", help="Show detailed diff output")
+    parser.add_argument(
+        "--verbose", action="store_true", help="Show detailed diff output"
+    )
 
     args = parser.parse_args()
 

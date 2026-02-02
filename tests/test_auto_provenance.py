@@ -203,7 +203,9 @@ class TestAutoProvenanceFromConfig:
 
             # Verify input exists (from fixture)
             input_file = repo / "data" / "input.csv"
-            assert input_file.exists(), f"Input file {input_file} should exist from fixture"
+            assert input_file.exists(), (
+                f"Input file {input_file} should exist from fixture"
+            )
 
             # Create outputs
             fig = repo / "output" / "figures" / "test_analysis.pdf"
@@ -270,9 +272,7 @@ fig = Path(r"{repo}") / "output" / "figures" / "test_analysis.pdf"
 tbl = Path(r"{repo}") / "output" / "tables" / "test_analysis.tex"
 fig.write_text("fake pdf")
 tbl.write_text("fake table")
-""".format(
-            repo=repo
-        )
+""".format(repo=repo)
 
         script_file = repo / "build_test_analysis.py"
         script_file.write_text(script_content)
@@ -327,9 +327,7 @@ fig = Path(r"{repo}") / "output" / "figures" / "new_analysis.pdf"
 tbl = Path(r"{repo}") / "output" / "tables" / "new_analysis.tex"
 fig.write_text("fake pdf")
 tbl.write_text("fake table")
-""".format(
-            repo=repo
-        )
+""".format(repo=repo)
 
         script_file = repo / "build_new_analysis.py"
         script_file.write_text(script_content)
