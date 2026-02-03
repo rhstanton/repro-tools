@@ -262,6 +262,7 @@ def publish_files(
     project_root: Path,
     paper_root: Path,
     file_paths: List[Path],
+    dest_subdir: str | None = None,
     allow_dirty: bool = False,
     require_not_behind: bool = True,
     verbose: bool = True,
@@ -273,6 +274,9 @@ def publish_files(
         project_root: Root of analysis repository
         paper_root: Root of paper repository
         file_paths: List of output files to publish
+        dest_subdir: Optional subdirectory within paper_root to publish to.
+                    If provided, overrides the path structure from output/.
+                    E.g., 'bondmath' publishes to paper_root/bondmath/ instead of preserving output/ structure.
         allow_dirty: Allow publishing from dirty tree
         require_not_behind: Require branch not behind upstream
         verbose: Print status messages
@@ -316,7 +320,13 @@ def publish_files(
                 "Only output files can be published."
             ) from e
 
-        dst = paper_root / rel_path
+        # Allow overriding destination subdirectory
+        if dest_subdir:
+            # Use custom subdirectory, preserving only the filename
+            dst = paper_root / dest_subdir / src.name
+        else:
+            # Preserve directory structure from output/
+            dst = paper_root / rel_path
 
         # Try to find associated build record
         analysis_name = _infer_analysis_name(src, project_root)
@@ -334,8 +344,8 @@ def publish_files(
             rel_dst = dst.relative_to(paper_root)
             print(f"  {rel_dst!s:40s}  {status}")
 
-        # Record in provenance
-        file_key = str(rel_path)
+        # Record in provenance (use destination path as key)
+        file_key = str(dst.relative_to(paper_root))
         prov["files"][file_key] = {
             "published_at_utc": now_utc_iso(),
             "copied": copied,
