@@ -365,9 +365,20 @@ def _infer_analysis_name(output_path: Path, project_root: Path) -> str | None:
     for prov_file in prov_dir.glob("*.yml"):
         try:
             meta = load_yml(prov_file)
-            outputs = meta.get("outputs", [])
-            for out_info in outputs:
-                if Path(out_info.get("path", "")).resolve() == output_path.resolve():
+            outputs = meta.get("outputs", {})
+            # Handle both dict (keyed outputs) and list formats
+            if isinstance(outputs, dict):
+                output_items = outputs.values()
+            else:
+                output_items = outputs
+            
+            for out_info in output_items:
+                out_path = out_info.get("path", "")
+                if not out_path:
+                    continue
+                # Resolve relative paths from project_root
+                resolved_out = (project_root / out_path).resolve()
+                if resolved_out == output_path.resolve():
                     return prov_file.stem  # The analysis name
         except Exception:
             continue
