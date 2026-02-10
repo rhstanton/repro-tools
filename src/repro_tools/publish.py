@@ -381,7 +381,7 @@ def _infer_analysis_name(output_path: Path, project_root: Path) -> str | None:
                 output_items = outputs.values()
             else:
                 output_items = outputs
-            
+
             for out_info in output_items:
                 out_path = out_info.get("path", "")
                 if not out_path:

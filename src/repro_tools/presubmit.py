@@ -62,6 +62,7 @@ class PreSubmitChecker:
             result = subprocess.run(
                 ["git", "rev-parse", "--git-dir"],
                 capture_output=True,
+                text=True,
                 cwd=self.repo_root,
                 timeout=5,
             )
