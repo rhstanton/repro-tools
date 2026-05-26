@@ -97,7 +97,7 @@ clean:
 
 .PHONY: cleanall
 cleanall: clean
-	@rm -rf .env .julia .stata
+	@rm -rf .venv .julia .stata
 
 # ==============================================================================
 # Verification & Testing
@@ -111,7 +111,7 @@ verify:
 	@echo "========================================"
 	@echo ""
 	@echo "1. Checking Python environment..."
-	@if [ -f .env/bin/python ]; then \
+	@if [ -f .venv/bin/python ]; then \
 		$(PYTHON) --version | sed 's/^/   /' && echo "   ✓"; \
 	else \
 		echo "   ✗ Python environment not found"; \
