@@ -1,0 +1,689 @@
+#+TITLE: Replication Constitution and Research Operations Manual
+#+AUTHOR: Richard Stanton
+#+DATE: 2026-01-06
+#+STARTUP: overview
+#+OPTIONS: toc:3 num:nil
+#+FILETAGS: :replication:constitution:operations:
+
+* Where this document lives                                   [2026-08-16]
+
+Moved here from =fire/notes/REPLICATION-CONSTITUTION.org=. It governs decisions in more than one repository — =fire=, =project_template=, and anything generated from the template — and it had been living inside a repo we agreed to freeze, reachable only by someone who already knew to look there. A policy nobody can find is not policy.
+
+=repro-tools= is the right home because it is the piece every project already vendors as a submodule: updating the submodule brings the current constitution with it, the same channel that carries =common.mk= and =env.sh=.
+
+The copy in =fire/notes/= is now a pointer. Edit this one.
+
+** Compliance note, 2026-08-16: the template does not commit Manifest.toml
+
+The *Julia authority policy* below requires pinning "via Project.toml **and**
+Manifest.toml". =fire= complies. =project_template= deliberately does **not**, and
+this is an exception rather than a violation:
+
+A Julia Manifest pins packages only for the Julia version it was resolved with; on any other Julia, Pkg rewrites it rather than failing. A template cannot control which Julia a machine can install, because juliacall declares =OpenSSL_jll= as ="<=python"= — tying the maximum usable Julia to the host Python's OpenSSL. A manifest resolved on 1.12 is therefore unusable on a GitHub runner capped at 1.11, and committing one made CI report "NOT REPRODUCING THE PINNED VERSIONS" on every run.
+
+The rule stands for **projects**, which know their platforms. It cannot bind a template, which does not. The template ships the machinery — the manifest is restored rather than deleted during install, and the build reports via git whether the pin survived — and instructs each project to commit its own.
+
+The general form is worth stating alongside the 2026-08-11 lesson below: *an environment file that is gitignored is not a pin* — and equally, **a pin that the platform cannot honour is not a pin either, it is a warning that fires every time.**
+
+* Purpose, Scope, and Status of This Document
+
+This file is the permanent operational and architectural reference for empirical
+research projects.
+
+It governs:
+
+- how journal replication packages are designed and constrained
+- how environments are built and managed
+- how toolchains are selected, limited, and justified
+- how estimation backends are evaluated and authorized
+- how correctness is established and defended
+- how private operational memory is separated from public documentation
+- how failures are recorded and never rediscovered from scratch
+- how submissions and revisions are engineered and archived
+- how future projects are bootstrapped
+
+This file is not a project notebook.  
+This file is not journal documentation.
+
+This file is a constitution.
+
+It changes slowly.  
+It is copied into new projects.  
+It encodes lessons that are expensive to relearn.
+
+Project-specific history, debugging narratives, and journal interactions belong
+in lab notebooks and incident logs under notes/.
+
+This file lives in notes/ and is excluded from any journal replication package.
+
+--------------------------------------------------------------------
+
+* Audience Model and Directory Semantics
+
+Every serious empirical repository serves multiple audiences.  
+Confusing those audiences is one of the most common sources of replication
+failure, documentation sprawl, and late-stage crisis.
+
+This repository always has at least three audiences:
+
+1. Editors and referees  
+2. Coauthors and collaborators  
+3. Myself (future-me)
+
+These audiences must never be mixed accidentally.
+
+** docs/ — public, journal-facing, shippable
+
+Audience:
+- editors
+- referees
+- readers
+- collaborators following official instructions
+
+docs/ may contain:
+- README.md
+- QUICKSTART.md
+- replication instructions
+- data availability statements
+- minimal troubleshooting necessary for replication
+
+docs/ must never contain:
+- debugging diaries
+- internal design rationales
+- upstream package investigations
+- private data handling details
+- environment postmortems
+- developer-only workflows
+- references or links into notes/
+
+docs/ must be safe to archive and distribute unchanged.
+
+** notes/ — private, excluded, institutional memory
+
+Audience:
+- myself (future-me)
+- possibly close collaborators
+
+notes/ may contain:
+- this replication constitution
+- lab notebooks
+- backend investigations (e.g., pyfixest dossier)
+- environment postmortems
+- submission playbooks
+- internal checklists
+- upstream issue links
+- failure narratives and dead ends
+
+notes/ is excluded via JOURNAL_EXCLUDE.
+
+Hard rule:
+Nothing under docs/ may link into notes/.
+No replication code path may require notes/.
+
+--------------------------------------------------------------------
+
+* Core Replication Principles
+
+** Correctness dominates convenience
+
+If a backend produces suspect or incorrect results, it is not supported for
+replication.
+
+Wrong-but-easy is unacceptable.  
+Correct-but-heavier is acceptable.
+
+This applies even if:
+
+- the heavier path is slower,
+- the heavier path uses a different language,
+- the heavier path requires more tooling,
+- the heavier path is unfamiliar.
+
+Scientific correctness has lexical priority over engineering convenience.
+
+** Editors must not be forced to learn new ecosystems
+
+The default replication path must use tooling that is socially familiar to
+applied researchers and journal staff.
+
+Allowed as defaults:
+
+- make (or a wrapper that hides GNU make differences)
+- conda-style environments
+- automatic installers
+
+Never require editors to install or understand:
+
+- Nix
+- pixi
+- uv
+- Julia toolchains
+
+Note (2026-08-11): this clause still stands and is *not* in tension with the uv mandate under Toolchain Governance. The distinction is between authoring and consumption. Authors use uv; the replication package ships hash-pinned =requirements.txt= exports that plain =pip= installs, and that path is tested with uv absent from =PATH=. If a change ever makes uv necessary to *run* the package rather than to *build* it, this clause is violated and the change is out of order.
+- custom shells
+- developer build systems
+
+Complexity may exist internally.  
+It must be hidden.
+
+** One-command replication experience
+
+The replication package is not ready unless the following commands succeed on
+a clean machine:
+
+  make environment  
+  make all  
+  make test-outputs  
+
+No manual interpreter management.  
+No undocumented prerequisites.  
+No “oh, also install X.”
+
+** Hard separation of concerns
+
+There must always be a strict firewall between:
+
+- replication environments
+- development/debug environments
+- experimental forks
+
+Replication environments:
+
+- pinned
+- conservative
+- boring
+
+Development environments:
+
+- flexible
+- editable
+- allowed to break
+
+No developer convenience may silently enter the replication path.
+
+--------------------------------------------------------------------
+
+* Toolchain Governance
+
+This section records not only what tools are used, but what they are allowed to
+mean.
+
+** Outer environment manager (editor-facing)
+
+*** Amended 2026-08-11: uv supersedes conda
+
+Use *uv*, with =pyproject.toml= declaring dependencies and =uv.lock= pinning the full transitive closure. The previous conda mandate is superseded; it is retained below because the reasoning that produced it still constrains what may replace it.
+
+The decisive objection to conda was not ergonomic but evidentiary: =env/python.yml= carried no lockfile, so =conda env create= re-solved on every build. The environment that produced a submitted paper was therefore not reconstructible, and this was not a theoretical risk — see =BASELINE.md= in the fire-uv working copy, where the outputs on disk had drifted from the submitted numbers with no record of what changed. A declaration without a lockfile is a wish, not a pin.
+
+The original rationale survives the change intact:
+
+- Familiar to most applied researchers — uv is a drop-in for =pip=/=venv= workflows, and the *consumption* interface is plain pip (see the export rule below).
+- Handles native dependencies — the packages here ship manylinux wheels; the one genuinely native component, Julia, was never conda's to manage.
+- Well supported across macOS and Linux — verified resolving for both =aarch64-darwin= and =x86_64-linux=.
+- Does not force a conceptual shift — unlike Nix, uv is still "a virtualenv with a lockfile."
+
+The outer environment still exists to make the machine uninteresting. It now also makes the *date* uninteresting, which conda did not.
+
+*** Binding constraint: the replication package must not require uv
+
+uv is how the authors *author* the environment. It must never be what a journal data editor is required to install.
+
+Therefore:
+
+- =uv.lock= must be exported to hash-pinned =requirements.txt= files that plain =pip= can install (=make python-export= → =env/requirements/{base,gpu}.txt=).
+- The exported files are committed and shipped in the replication package.
+- The build must fail, not warn, if the exports are older than =uv.lock=.
+- The replicator's path (=make python-env-pip=) must be tested with uv absent from =PATH=. It was, on 2026-08-11: 83 packages installed by pip alone, every version identical to the uv-built environment.
+- The exports are pinned for one Python version. The install rule must verify the interpreter version explicitly, because a mismatch surfaces as an inscrutable hash failure rather than a version error.
+
+*** Superseded (retained for the record)
+
+Use a conda-style environment manager (conda, mamba, micromamba).
+
+** Python packaging policy
+
+*** Amended 2026-08-11
+
+- =pyproject.toml= owns runtime dependencies; =uv.lock= pins them.
+- Tooling configuration (formatters, linters, pytest) also lives in =pyproject.toml=. The old separation existed only because conda owned dependencies; with one file owning both there is nothing to split.
+- Dependency declarations are not split across tools. This rule is *strengthened*, not relaxed: under conda the project already violated it, with a =pip:= section plus GPU wheels installed outside conda's view, and =pyfixest= and =did_toolkit= pip-installed after environment creation and thus outside any pin. All are now ordinary locked dependencies.
+- A single Python version is targeted, recorded in =.python-version=.
+- Every environment file that can drift must be deleted, not deprecated. =env/python.yml= was removed rather than marked obsolete: an unpinned declaration sitting beside a lockfile is precisely the hazard this section exists to prevent, and a file marked "deprecated" still gets read and edited.
+
+This continues to prevent:
+
+- solver divergence
+- invisible pip installs
+- environment schizophrenia
+- "works on my machine" failures
+
+and additionally prevents:
+
+- silent re-resolution between builds
+- unreconstructible published results
+
+*** Superseded (retained for the record)
+
+- The conda environment owns runtime dependencies.
+- `pyproject.toml` is configuration only (formatters, linters, tooling).
+
+** Julia authority policy
+
+If Julia is required to obtain correct results, then Julia *is* the replication
+backend.
+
+Julia must be:
+
+- installed automatically
+- project-local
+- pinned via Project.toml and Manifest.toml
+- invoked only via Make targets or wrappers
+
+Editors must never be instructed to install Julia manually.
+
+Julia is not “an auxiliary tool.”
+If it produces the scientifically valid result, it is first-class.
+
+*** Compliance note, 2026-08-11 (no amendment — the rule was simply being broken)
+
+The requirement above to pin "via Project.toml *and* Manifest.toml" was not being met: =env/Manifest.toml= was gitignored in both =fire= and the project template, leaving =Project.toml='s compat bounds as the only constraint. Those bounds admit any =FixedEffectModels= 1.x — and by this section's own logic Julia, not Python, computes every coefficient in the paper, so the unpinned half was the half that matters. =env/Manifest.toml= is now committed (Julia 1.12.6, FixedEffectModels 1.13.2, PythonCall 0.9.31, CUDA 6.2.1), and =env/juliapkg.json= pins the Julia binary version.
+
+The general lesson is worth stating: an environment file that is gitignored is not a pin, and a constitution clause that nothing enforces will be violated silently. =make check-environment= now fails when either lockfile is missing.
+
+** Nix policy (developer infrastructure only)
+
+Nix may be used for:
+
+- personal reproducibility
+- CI
+- toolchain pinning
+- Makefile validation
+
+Nix may never be:
+
+- required for replication
+- referenced in journal documentation
+- a hidden dependency of make environment
+
+If replication ever depends on Nix, that dependency must be explicit, justified,
+and documented as a major architectural shift.
+
+** Docker policy (fallback only)
+
+Docker may be provided only as a fallback for editors who cannot install the
+native environment.
+
+Docker must never be the only supported replication path.
+
+--------------------------------------------------------------------
+
+* Replication Architecture
+
+** Canonical editor workflow
+
+Editors must be able to run:
+
+  make environment  
+  make all  
+  make test-outputs  
+
+These commands:
+
+- install everything needed
+- run all analyses
+- verify outputs
+
+No other commands are documented.
+
+** Automatic Julia installation
+
+Julia must be installed automatically as part of environment setup.
+
+Operational lessons that must never be forgotten:
+
+- Julia signal handling must be configured before Python starts.
+- Global Julia objects created during regressions must be cleared.
+- Julia garbage collection must be allowed to run aggressively.
+
+These measures were required in practice to prevent:
+
+- intermittent segfaults,
+- silent kernel death,
+- runaway memory growth.
+
+Any future change that touches Julia invocation must be checked against these
+stability requirements.
+
+** Replication ergonomics and progress logging
+
+Long-running pipelines must emit structured progress announcements.
+
+Progress-step logging is legitimate replication engineering:
+
+- It reassures editors that the process is alive.
+- It helps diagnose where failures occur.
+- It reduces “is this hung?” correspondence.
+
+Progress reporting is not cosmetic.  
+It is part of usability.
+
+--------------------------------------------------------------------
+
+* Data Architecture and Journal Constraints
+
+Empirical projects always have legally and practically different data classes.
+These must be explicit.
+
+** data/
+
+Raw or lightly processed inputs.
+
+May contain:
+
+- proprietary material
+- restricted data
+- licensed sources
+
+Must never be assumed present in a public replication package.
+
+** data-construction/
+
+Pipelines that transform raw data into processed_data.
+
+Exists for:
+
+- provenance
+- auditability
+- internal verification
+
+Not necessarily executed by editors.
+
+** processed_data/
+
+Journal-facing analysis inputs.
+
+Replication code may depend only on:
+
+- processed_data
+- code
+
+** JOURNAL_EXCLUDE
+
+Authoritative list of what is not shipped.
+
+Before submission:
+
+- test replication without excluded paths
+- scan logs for absolute paths
+- confirm docs do not reference excluded material
+
+--------------------------------------------------------------------
+
+* Makefile Topology and Orchestration
+
+** Top-level Makefile
+
+The only editor-facing Makefile.
+
+Responsibilities:
+
+- environment setup
+- orchestration
+- verification
+- routing into subprojects
+
+It is the contract.
+
+** Subproject Makefiles
+
+Used for:
+
+- component pipelines
+- internal testing
+- modular development
+
+They must never:
+
+- create environments
+- install interpreters
+- become editor-facing entry points
+
+** Makefile philosophy
+
+Makefiles are:
+
+- orchestration logic
+- dependency documentation
+- executable manifests
+
+They are part of the scientific artifact.
+
+--------------------------------------------------------------------
+
+* Environment Strategy
+
+** Replication environment
+
+Properties:
+
+- pinned
+- conservative
+- installs Julia automatically
+- excludes unused tooling (e.g., Stata if not required)
+- logs provenance
+
+It must be possible to delete the entire environment and recreate it without
+manual intervention.
+
+** Development environment
+
+Properties:
+
+- editable installs
+- forks
+- profilers
+- Nix
+- experimental backends
+
+It may break.
+
+It must never be referenced by journal documentation.
+
+--------------------------------------------------------------------
+
+* Backend Authority and Gating
+
+When multiple backends exist, one is authoritative.
+
+Authority is not political.  
+It is empirical.
+
+A backend may be authoritative only if:
+
+- coefficients match on canonical specs
+- standard errors match within tolerance
+- sample sizes match at every processing stage
+- fixed-effect group counts match
+- singleton handling matches
+- results are stable across machines
+- regression tests exist
+
+Until these conditions are met, the backend is not replication-eligible.
+
+--------------------------------------------------------------------
+
+* Testing as Scientific Infrastructure
+
+Tests are not developer convenience.  
+They are scientific infrastructure.
+
+A serious replication package is expected to include:
+
+- smoke tests
+- output verification
+- backend parity tests (when applicable)
+- configuration validation
+- deterministic caching tests
+
+A large, structured test suite is evidence of scientific seriousness.
+
+--------------------------------------------------------------------
+
+* Caching and Validation Policy
+
+Caching and pre-flight validation are allowed and encouraged if:
+
+- they do not change results
+- they are deterministic
+- they are invalidated on configuration changes
+- they are documented
+
+They improve usability without compromising reproducibility.
+
+--------------------------------------------------------------------
+
+* Performance and Plotting Policy
+
+** Performance
+
+Optimizations that preserve semantics are allowed.
+
+Examples:
+
+- deferred counting
+- streaming instead of materializing
+- caching
+
+Counts and diagnostics may be computed at checkpoints rather than inline, but
+their meaning must remain unchanged.
+
+** Figures
+
+It is acceptable to produce:
+
+- publication plots
+- presentation-optimized variants (e.g., _small.pdf)
+
+LaTeX-consistent typography is allowed.
+
+However, LaTeX rendering is a dependency risk and must be treated as such.
+
+Consider:
+
+- documenting a fallback mode
+- isolating TeX rendering to plotting stages
+
+--------------------------------------------------------------------
+
+* Stable Operational Cookbook
+
+These commands are intended to remain valid across projects.
+
+** Fresh-machine audit
+
+#+begin_src sh
+make clean
+make environment
+make smoke
+make all
+make test-outputs
+#+end_src
+
+** Hard environment reset
+
+#+begin_src sh
+rm -rf .env .julia
+make environment
+make verify
+#+end_src
+
+** Provenance capture
+
+#+begin_src sh
+git rev-parse HEAD
+git status --porcelain
+.env/bin/python -V
+#+end_src
+
+--------------------------------------------------------------------
+
+* Release Engineering Policy
+
+Every journal submission, resubmission, and revision is a formal release.
+
+A release is not just a paper draft.  
+It is a frozen scientific artifact consisting of:
+
+- code
+- environments
+- data inputs
+- outputs
+- documentation
+
+For every submission or revision, the following must be explicitly recorded
+in private notes:
+
+- Journal name
+- Date the package was finalized and sent
+- Full git commit hash
+- Whether the working tree was clean
+- Exact environment specifications used
+- Julia version
+- Julia Project.toml and Manifest.toml hashes
+- Machine characteristics (OS, CPU, memory)
+- Total runtime for a full replication run
+- Exact commands used
+- Where archived outputs are stored
+
+For every submission or revision, the following artifacts must be archived:
+
+- Source snapshot at the submission commit
+- All generated figures and tables
+- All log files from the final run
+- Environment specification files
+- Packaging filters (e.g., JOURNAL_EXCLUDE)
+
+Historical artifacts must never be overwritten.
+
+If a mistake is discovered later, a new archived release is created.
+
+--------------------------------------------------------------------
+
+* Future Project Template Checklist
+
+The moment a new empirical project is created, the following steps must be
+taken deliberately and early:
+
+- [ ] Create notes/ and ensure it is excluded from replication packaging.
+- [ ] Copy this constitution into notes/ unchanged.
+- [ ] Create a project-specific lab notebook immediately.
+- [ ] Explicitly decide which estimation backend is authoritative.
+- [ ] Establish docs/ as the only public documentation directory.
+- [ ] Define data classes early (raw, construction, processed).
+- [ ] Add a smoke test as soon as the first analysis exists.
+- [ ] Add provenance capture as soon as the first nontrivial run exists.
+- [ ] Create an explicit replication entry point before the codebase grows.
+- [ ] Decide environment strategy before adding many dependencies.
+- [ ] Record all of the above decisions in the lab notebook.
+
+This checklist exists to prevent retrofit replication.
+
+--------------------------------------------------------------------
+
+* Closing Principle
+
+Environment design is part of the scientific method.
+
+If a result cannot be reproduced easily and correctly by a stranger,
+it is not yet a scientific result.
+
+This document exists to enforce that standard across projects and years.
+
+* Configuration                                                     :noexport:
+
+#+SETUPFILE: "~/.org/setup"
+#+OPTIONS: toc:2 num:2 ^:{} _:{} tags:nil arch:nil todo:nil
+#+STARTUP: hidestars inlineimages show2levels
+# #+STARTUP: hidestars inlineimages overview
+
