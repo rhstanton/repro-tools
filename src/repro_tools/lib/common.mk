@@ -369,4 +369,22 @@ dryrun:
 	@echo ""
 	@$(MAKE) -n all 2>&1 | grep -E '^(Building|Running|======|✓)' || true
 
+# ==============================================================================
+# Template updates
+# ==============================================================================
+
+# Show which project_template changes have not been applied here yet, split by
+# whether this project has customized the file. Prints only -- it never writes.
+#
+# An auto-applying version would be the dangerous one: template changes routinely
+# collide with the project-specific decisions that make a project a project, and
+# resolving that silently is how an analysis acquires an edit nobody reviewed.
+#
+# Needs template-origin.toml (written by bootstrap.py at creation); without a
+# record of which template version this project came from there is no baseline
+# and the question cannot be answered.
+.PHONY: template-diff
+template-diff:
+	@$(PYTHON) -m repro_tools.template_update $(ARGS)
+
 # End of common.mk
