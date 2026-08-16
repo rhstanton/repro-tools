@@ -107,9 +107,7 @@ def template_clone(url: str, cache: Path) -> Path:
 
 def changed_files(repo: Path, old: str, new: str) -> list[tuple[str, str]]:
     """[(status, path)] for the template's own history between two commits."""
-    out = run(
-        ["git", "--git-dir", str(repo), "diff", "--name-status", f"{old}..{new}"]
-    )
+    out = run(["git", "--git-dir", str(repo), "diff", "--name-status", f"{old}..{new}"])
     rows = []
     for line in out.splitlines():
         parts = line.split("\t")
@@ -124,6 +122,37 @@ def blob_at(repo: Path, ref: str, path: str) -> bytes | None:
         capture_output=True,
     )
     return r.stdout if r.returncode == 0 else None
+
+
+# Files that exist only because a language does. A project that pruned that
+# language should not be nudged to adopt them -- the whole point of pruning was
+# to not have them.
+LANGUAGE_MARKERS = {
+    # env/Manifest.toml and env/Project.toml are Julia's, despite naming no
+    # language. Matching on the name alone would also catch a Python project.toml,
+    # so they are anchored to env/ where only Julia has them.
+    "--remove-julia": (
+        "julia",
+        "juliacall",
+        "juliapkg",
+        ".jl",
+        "env/manifest.toml",
+        "env/project.toml",
+    ),
+    "--remove-stata": ("stata", ".do", ".ado"),
+}
+
+
+def pruned_language_hint(paths: list[str], flags: list[str]) -> set[str]:
+    """Which of these new files belong to a language this project removed."""
+    hits: set[str] = set()
+    for flag in flags:
+        markers = LANGUAGE_MARKERS.get(flag, ())
+        for p in paths:
+            low = p.lower()
+            if any(m in low for m in markers):
+                hits.add(p)
+    return hits
 
 
 def interesting(path: str) -> bool:
@@ -164,9 +193,7 @@ def main(argv: list[str]) -> int:
         print(f"\nUp to date: the template's {ref} is still {base[:12]}.")
         return 0
 
-    ahead = run(
-        ["git", "--git-dir", str(repo), "rev-list", "--count", f"{base}..{head}"]
-    ).strip()
+    ahead = run(["git", "--git-dir", str(repo), "rev-list", "--count", f"{base}..{head}"]).strip()
     print(f"Template {ref} is now {head[:12]} ({ahead} commits ahead)\n")
 
     rows = [(s, p) for s, p in changed_files(repo, base, head) if interesting(p)]
@@ -178,19 +205,34 @@ def main(argv: list[str]) -> int:
     modified: list[str] = []
     added: list[str] = []
     removed: list[str] = []
+    current: list[str] = []
 
     for status, path in rows:
         local = project / path
         if status == "D":
             removed.append(path)
             continue
+        # A submodule is a gitlink, not a file. Its "change" is a moved pointer,
+        # and a project takes that with `git submodule update --remote`, not by
+        # copying anything -- so reporting it beside real files would invite
+        # exactly the wrong action.
+        if local.is_dir():
+            continue
         if status == "A" or not local.exists():
             added.append(path)
             continue
+        blob = local.read_bytes()
         baseline = blob_at(repo, base, path)
-        if baseline is None:
+        latest = blob_at(repo, head, path)
+        if blob == latest:
+            # Already identical to where the template ended up. Whether it got
+            # here by an earlier partial update or by coincidence does not
+            # matter: there is nothing left to apply, and calling it "modified"
+            # would send someone to review a diff that is empty.
+            current.append(path)
+        elif baseline is None:
             added.append(path)
-        elif local.read_bytes() == baseline:
+        elif blob == baseline:
             unmodified.append(path)
         else:
             modified.append(path)
@@ -214,10 +256,21 @@ def main(argv: list[str]) -> int:
         modified,
         "you have customized these; the template also changed them",
     )
+    pruned = pruned_language_hint(added, flags)
     show(
         "NEW IN TEMPLATE",
-        added,
-        "absent at your origin commit -- check they are not a language you pruned",
+        [p for p in added if p not in pruned],
+        "absent at your origin commit",
+    )
+    show(
+        "NEW, BUT FOR A LANGUAGE YOU PRUNED",
+        sorted(pruned),
+        f"bootstrap was run with {' '.join(flags)} -- almost certainly skip these",
+    )
+    show(
+        "ALREADY CURRENT",
+        current,
+        "the template changed these, but your copy already matches the new version",
     )
     show(
         "DELETED IN TEMPLATE",
@@ -236,11 +289,7 @@ def main(argv: list[str]) -> int:
             print("=" * 70)
             print(f"{path}: what the TEMPLATE changed")
             print("=" * 70)
-            print(
-                run(
-                    ["git", "--git-dir", str(repo), "diff", f"{base}..{head}", "--", path]
-                )
-            )
+            print(run(["git", "--git-dir", str(repo), "diff", f"{base}..{head}", "--", path]))
 
     print(f"After applying, update {ORIGIN_FILE}: commit = {head}")
     return 0
