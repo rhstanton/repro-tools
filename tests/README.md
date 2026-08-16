@@ -95,7 +95,9 @@ pytest -s tests/test_integration.py
 ### Keep Test Directories
 Modify test to not use tempfile, or add breakpoint:
 ```python
-import pdb; pdb.set_trace()
+import pdb
+
+pdb.set_trace()
 ```
 
 ### Check Test Logs

@@ -182,7 +182,7 @@ def main(argv: list[str]) -> int:
 
     cache = Path.home() / ".cache" / "repro-tools"
     print(f"Template : {url}")
-    print(f"Generated from : {base[:12]}  (v{origin['template'].get('version','?')})")
+    print(f"Generated from : {base[:12]}  (v{origin['template'].get('version', '?')})")
     if flags:
         print(f"Bootstrap flags: {' '.join(flags)}")
     print("Fetching template ...")
@@ -193,7 +193,9 @@ def main(argv: list[str]) -> int:
         print(f"\nUp to date: the template's {ref} is still {base[:12]}.")
         return 0
 
-    ahead = run(["git", "--git-dir", str(repo), "rev-list", "--count", f"{base}..{head}"]).strip()
+    ahead = run(
+        ["git", "--git-dir", str(repo), "rev-list", "--count", f"{base}..{head}"]
+    ).strip()
     print(f"Template {ref} is now {head[:12]} ({ahead} commits ahead)\n")
 
     rows = [(s, p) for s, p in changed_files(repo, base, head) if interesting(p)]
@@ -289,7 +291,19 @@ def main(argv: list[str]) -> int:
             print("=" * 70)
             print(f"{path}: what the TEMPLATE changed")
             print("=" * 70)
-            print(run(["git", "--git-dir", str(repo), "diff", f"{base}..{head}", "--", path]))
+            print(
+                run(
+                    [
+                        "git",
+                        "--git-dir",
+                        str(repo),
+                        "diff",
+                        f"{base}..{head}",
+                        "--",
+                        path,
+                    ]
+                )
+            )
 
     print(f"After applying, update {ORIGIN_FILE}: commit = {head}")
     return 0
