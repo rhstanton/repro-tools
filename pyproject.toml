@@ -90,3 +90,44 @@ disallow_untyped_defs = false
 files = ["src/repro_tools"]
 # Allow missing imports for optional dependencies
 ignore_missing_imports = true
+
+# Ruff configuration.
+#
+# Explicit on purpose, and added 2026-08-16 after its absence caused a CI
+# failure that no local run could reproduce. Ruff discovers configuration by
+# walking UP from each file, and this repo is normally checked out as a submodule
+# inside a project that has a [tool.ruff] block -- so `ruff check` here silently
+# inherited that project's rule selection and passed. CI checks this repo out
+# standalone, finds no config at all, and falls back to ruff's built-in defaults,
+# which flagged 82 errors including RUF022.
+#
+# Two lessons, both encoded here: a repo that is usually a submodule must carry
+# its own config, or it is being linted against whatever happens to be above it;
+# and an unpinned linter with no config makes the verdict track the tool's
+# default set rather than the code. The workflow pins ruff for the same reason.
+[tool.ruff]
+line-length = 88
+# The package supports 3.9+; lint against the floor, not the newest interpreter.
+target-version = "py39"
+exclude = [
+    ".git",
+    ".env",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort (import sorting)
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+]
+ignore = [
+    "E501",  # line too long (the formatter owns line length)
+]
