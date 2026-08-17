@@ -133,15 +133,35 @@ def compare():
 
     args = parser.parse_args()
 
+    # No reference to compare against is not a failure -- a project has no
+    # published outputs until it publishes. Handled before compare_outputs,
+    # which cannot distinguish "nothing to compare" from "compared and differed"
+    # (it returns False for both), and exiting 1 here would make
+    # `make diff-outputs` red on arrival in every fresh project.
+    reference = Path(args.reference)
+    if not reference.exists():
+        print(f"No reference directory at {reference}; nothing to compare.")
+        print("Not a failure: point --reference at published outputs once there")
+        print("are some.")
+        sys.exit(0)
+
     all_identical, report = compare_outputs(
         current_dir=Path(args.current_dir),
-        reference_dir=Path(args.reference),
+        reference_dir=reference,
         artifacts=args.artifacts,
         verbose=args.verbose,
     )
 
     print(report)
-    sys.exit(0)
+    # THE EXIT STATUS IS THE POINT.
+    #
+    # This used to compute all_identical and then `sys.exit(0)` regardless, so
+    # `make diff-outputs` -- announced as "Comparing current outputs with
+    # published outputs" -- passed whether or not they matched. A comparison
+    # that always succeeds is not a comparison; anything reading the exit code,
+    # CI included, was being told the outputs agreed without anyone having
+    # checked.
+    sys.exit(0 if all_identical else 1)
 
 
 def sysinfo():
