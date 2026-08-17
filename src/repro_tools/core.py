@@ -193,22 +193,35 @@ def auto_build_record(
     """
     import sys
 
-    # Get the calling script's file path
-    frame = inspect.currentframe()
-    if frame is None or frame.f_back is None:
-        raise RuntimeError("Cannot determine calling script")
-
-    caller_file = Path(frame.f_back.f_globals["__file__"]).resolve()
+    # Look at the caller's frame ONLY for the things we were not told.
+    #
+    # This used to run unconditionally and index f_globals["__file__"] directly,
+    # which raised KeyError in any caller without one -- `python -c`, a REPL, an
+    # Emacs inferior shell, a Jupyter cell. Those are exactly the interactive
+    # sessions a research project runs analyses from, and the failure landed on
+    # the provenance call at the END of a long run, after the expensive work.
+    #
+    # Provenance is evidence ABOUT a run; it must never be the thing that
+    # destroys one. So: only introspect when a value is actually missing, and
+    # fall back to the working directory rather than raising when there is no
+    # caller file to read.
+    caller_file = None
+    if artifact_name is None or repo_root is None:
+        frame = inspect.currentframe()
+        caller_globals = frame.f_back.f_globals if frame and frame.f_back else {}
+        caller_path = caller_globals.get("__file__")
+        if caller_path:
+            caller_file = Path(caller_path).resolve()
 
     # Auto-detect artifact name if not provided
     if artifact_name is None:
-        artifact_name = caller_file.stem
+        artifact_name = caller_file.stem if caller_file else out_meta.stem
         if artifact_name.startswith("build_"):
             artifact_name = artifact_name[6:]  # Remove "build_" prefix
 
     # Auto-detect repo root if not provided
     if repo_root is None:
-        repo_root = caller_file.parent
+        repo_root = caller_file.parent if caller_file else Path.cwd()
 
     # Use sys.argv for command (exact command that was run)
     command = sys.argv.copy()
