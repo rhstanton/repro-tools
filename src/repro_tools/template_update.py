@@ -28,7 +28,7 @@ The classification is the whole design:
 Requires template-origin.toml, written by bootstrap.py. Without it there is no
 baseline and the question is unanswerable; say so rather than guessing.
 
-    repro-tools template-diff [--template-ref main] [--verbose]
+    repro-template-diff [--template-ref main] [--verbose]
 """
 
 from __future__ import annotations

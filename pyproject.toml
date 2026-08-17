@@ -31,13 +31,13 @@ dev = [
 ]
 
 [project.scripts]
-repro-new-project = "repro_tools.cli:new_project"
 repro-record = "repro_tools.cli:record_provenance"
 repro-publish = "repro_tools.cli:publish"
 repro-compare = "repro_tools.cli:compare"
 repro-sysinfo = "repro_tools.cli:sysinfo"
 repro-check = "repro_tools.cli:presubmit"
 repro-report = "repro_tools.cli:report_gen"
+repro-template-diff = "repro_tools.cli:template_diff"
 
 [project.urls]
 "Homepage" = "https://github.com/rhstanton/repro-tools"

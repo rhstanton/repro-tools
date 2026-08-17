@@ -163,3 +163,18 @@ def report_gen():
     from repro_tools.report import main as report_main
 
     report_main()
+
+
+def template_diff():
+    """CLI entry point for repro-template-diff command.
+
+    template_update.main takes argv explicitly, so this wraps it: a console
+    script is called with no arguments. Until 2026-08-17 there was no entry
+    point at all, and the module's own docstring advertised an invocation
+    (`repro-tools template-diff`) that had never existed -- so the "apply
+    template updates to existing projects" feature was written, tested, and
+    unreachable.
+    """
+    from repro_tools.template_update import main as template_diff_main
+
+    sys.exit(template_diff_main(sys.argv[1:]))
