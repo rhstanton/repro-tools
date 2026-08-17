@@ -1,4 +1,17 @@
-# `test_publish_artifacts_built_dirty_allowed` fails locally, passes in CI
+# `dirty` means tracked-only, and one test assumed otherwise
+
+**RESOLVED 2026-08-17** for the failing test; the design question below is still
+open and is yours to settle.
+
+The test now dirties a **tracked** file (`README.md`) instead of creating an
+untracked one, which matches what `git_state` actually measures. Suite: 61 passed.
+
+The rest of this note is the investigation, kept because the design question it
+raises has not gone away.
+
+---
+
+## Original writeup: `test_publish_artifacts_built_dirty_allowed` fails locally
 
 Investigated 2026-08-17. **Not fixed** — the obvious fix breaks eight other
 tests, and the fix that would work needs a fixture change that should be made
@@ -72,3 +85,33 @@ with and without `core.excludesfile`, so the file is visible to git here.
 Worth knowing before trusting either result: a test that passes in one
 environment and fails in another is not telling you the code is fine in one of
 them. It is telling you the test depends on something nobody has named.
+
+
+## The design question, still open
+
+`git_state` defines `dirty` as **tracked content differing from HEAD**:
+`git diff --quiet` plus `git diff --cached --quiet`. Untracked files do not count.
+
+There is a real argument that they should. An untracked script is a perfectly
+good candidate for whatever produced the output being described, and provenance
+that calls such a tree "clean" is being generous about something it has not
+looked at.
+
+The argument against is what the attempt showed: switching to
+`git status --porcelain` breaks **thirteen** tests, because these fixtures leave
+inputs and built outputs untracked, so every built repo becomes dirty. A real
+project gitignores its outputs and would not see this — but "would not see this
+if configured correctly" is exactly the kind of assumption that ought to be
+stated rather than relied on.
+
+Attempted twice, reverted twice: first with a broad fixture `.gitignore`
+(`output/ data/ paper/`), which left `git commit` with nothing to commit and
+errored; then with a narrow one covering only built outputs, which still failed
+thirteen tests. Instrumenting rather than guessing a third time showed why —
+after the fixtures build, `--porcelain` reports `?? data/input.csv` and
+`?? output/tables/test_analysis.tex`.
+
+**If you want the stricter meaning**, it is: gitignore the built outputs in the
+fixtures, `git add` the inputs, switch `git_state` to `--porcelain`, and re-check
+all 61. It is a change to what `dirty` means for every consumer of this library,
+so it deserves to be decided rather than absorbed as a bug fix.

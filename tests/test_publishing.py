@@ -257,8 +257,24 @@ class TestPublishAnalyses:
         repo = analysis_artifacts["repo"]
         paper_dir = repo / "paper"
 
-        # Make repo dirty and rebuild
-        (repo / "dirty.txt").write_text("uncommitted change")
+        # Make repo dirty and rebuild.
+        #
+        # Modify a TRACKED file. Writing a new untracked file does not make the
+        # tree dirty as git_state defines it -- it checks `git diff` and
+        # `git diff --cached`, which see tracked modifications and staged
+        # changes and are blind to untracked paths. This test previously created
+        # an untracked dirty.txt, so the provenance record said dirty: false,
+        # publish_analyses had nothing to object to, and the expected SystemExit
+        # never came. It failed locally for that reason from the day it was
+        # written.
+        #
+        # Whether `dirty` OUGHT to include untracked files is a real question and
+        # a larger one -- an untracked script is a fine candidate for whatever
+        # produced an output, so provenance calling that tree "clean" is
+        # generous. But changing it flips the meaning of `dirty` for every
+        # consumer and breaks a dozen tests whose fixtures leave inputs and
+        # outputs untracked. See notes/known-test-failure-dirty-detection.md.
+        (repo / "README.md").write_text("# Test Repo\n\nuncommitted change\n")
 
         fig_file = analysis_artifacts["figure"]
         tbl_file = analysis_artifacts["table"]
@@ -276,7 +292,7 @@ class TestPublishAnalyses:
         )
 
         # Clean repo now (but artifacts were built dirty)
-        (repo / "dirty.txt").unlink()
+        (repo / "README.md").write_text("# Test Repo\n")
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "Update"],
