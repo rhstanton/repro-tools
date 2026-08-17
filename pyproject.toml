@@ -11,7 +11,13 @@ license = {text = "MIT"}
 authors = [
     {name = "Richard Stanton", email = "stanton@berkeley.edu"}
 ]
-requires-python = ">=3.9"
+# 3.11, not 3.9: template_update.py imports tomllib, which is stdlib only from
+# 3.11. The ">=3.9" claim was false for as long as that import existed --
+# `import repro_tools.template_update` raises ModuleNotFoundError on 3.9 and
+# 3.10 -- and untested, since CI has only ever run 3.11. Ruff surfaced it
+# sideways, by sorting tomllib into third-party imports; the import order was
+# the symptom, this line was the bug.
+requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=6.0",
     "docopt>=0.6.2",
@@ -48,7 +54,7 @@ where = ["src"]
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py311", "py312"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -108,7 +114,7 @@ ignore_missing_imports = true
 [tool.ruff]
 line-length = 88
 # The package supports 3.9+; lint against the floor, not the newest interpreter.
-target-version = "py39"
+target-version = "py311"
 exclude = [
     ".git",
     ".env",

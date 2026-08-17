@@ -13,7 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ['3.11']
+        # 3.11 is the declared floor (tomllib); 3.12 is what both consumers --
+        # project_template and fire -- actually run. Testing only the floor left
+        # the version everyone uses unexercised.
+        python-version: ['3.11', '3.12']
 
     steps:
     - uses: actions/checkout@v4

@@ -36,9 +36,8 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 ORIGIN_FILE = "template-origin.toml"
 
