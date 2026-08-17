@@ -21,10 +21,32 @@
 #
 # ==============================================================================
 
-# Ensure submodules are initialized
+# Ensure submodules are initialized.
+#
+# The previous version was `git submodule update --init --recursive 2>/dev/null
+# || true`, which discarded stderr AND the exit status, so an unreachable URL, a
+# missing git, or a failed clone were all indistinguishable from success. The
+# build then continued against submodules that were not there, and the real
+# failure surfaced later as a missing module -- somewhere that gave no hint the
+# cause was here.
+#
+# "Nothing to initialize" and "initialization failed" are different, and only
+# the first is fine. A project exported with `git archive` has no .git and no
+# submodules to fetch; that is normal and silent. A checkout that declares
+# submodules and cannot fetch them is broken, and says so.
 .PHONY: init-submodules
 init-submodules:
-	@git submodule update --init --recursive 2>/dev/null || true
+	@if [ ! -e .gitmodules ]; then \
+	  : ; \
+	elif ! git rev-parse --git-dir >/dev/null 2>&1; then \
+	  echo "Not a git checkout (an export?) -- skipping submodule init."; \
+	elif ! git submodule update --init --recursive; then \
+	  echo "" >&2; \
+	  echo "ERROR: git submodule update failed." >&2; \
+	  echo "  .gitmodules declares submodules that could not be fetched." >&2; \
+	  echo "  Check network access and whether any are private." >&2; \
+	  exit 1; \
+	fi
 
 # ==============================================================================
 # Environment Setup

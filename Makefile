@@ -84,7 +84,7 @@ format:
 # Check formatting without modifying
 format-check:
 	@echo "Checking code formatting with ruff..."
-	@$(RUN_CMD) ruff format --check src/ tests/
+	@$(RUN_CMD) ruff format --check src/ tests/ examples/ project_template/
 	@echo "Format check complete!"
 
 # Run type checker
@@ -96,7 +96,7 @@ typecheck type-check:
 # Run linter
 lint:
 	@echo "Running ruff linter..."
-	@$(RUN_CMD) ruff check src/ tests/
+	@$(RUN_CMD) ruff check src/ tests/ examples/ project_template/
 	@echo "Linting complete!"
 
 # Run all checks (lint + format-check + type-check)

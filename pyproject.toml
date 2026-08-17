@@ -32,7 +32,7 @@ classifiers = [
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "black>=23.0",
+    "ruff>=0.6",
     "mypy>=1.0",
 ]
 
@@ -52,9 +52,11 @@ repro-template-diff = "repro_tools.cli:template_diff"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.black]
-line-length = 100
-target-version = ["py311", "py312"]
+# No [tool.black] block. Black was removed in favor of ruff alone, and this
+# block outlived it declaring line-length = 100 while [tool.ruff] below says 88.
+# Two formatters that disagree on line length do not converge: each reformats
+# what the other just wrote, so `make format` produces a diff every time and
+# neither verdict is stable. Do not reintroduce it.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -67,6 +69,9 @@ addopts = [
     "--cov=repro_tools",
     "--cov-report=term-missing",
     "--cov-report=html",
+]
+markers = [
+    "slow: spawns git/make subprocesses and may wait on a network timeout",
 ]
 
 [tool.coverage.run]
@@ -113,7 +118,7 @@ ignore_missing_imports = true
 # default set rather than the code. The workflow pins ruff for the same reason.
 [tool.ruff]
 line-length = 88
-# The package supports 3.9+; lint against the floor, not the newest interpreter.
+# Lint against the floor in requires-python (3.11), not the newest interpreter.
 target-version = "py311"
 exclude = [
     ".git",
@@ -123,6 +128,15 @@ exclude = [
     ".pytest_cache",
     ".mypy_cache",
     ".ruff_cache",
+    # Ruff 0.16 formats fenced code blocks inside Markdown. That is actively
+    # wrong here: project_template/README.md documents scaffolding through
+    # `str.format()`, where `{{` is an escaped literal brace. Ruff reads `{{` as
+    # a nested dict and "fixes" it into code that does not work -- turning
+    #     STUDIES = {{ "my_analysis": {{ ... }}, }}
+    # into a set containing a dict. Documentation is prose about code, not code,
+    # and this repo runs ruff as a Python tool. Verified 2026-08-17: without
+    # this, `make format-check` fails on that README indefinitely.
+    "*.md",
 ]
 
 [tool.ruff.lint]

@@ -45,7 +45,7 @@ jobs:
       run: |
         # Pinned. Unpinned, this step's verdict tracks ruff's release
         # schedule rather than this repository: the same commit passed for
-        # months and then failed when ruff 0.16 stabilised RUF022. A check whose
+        # months and then failed when ruff 0.16 stabilized RUF022. A check whose
         # result can change while the code does not is only accidentally a check.
         pip install 'ruff==0.16.3' mypy types-PyYAML types-docopt
         make lint

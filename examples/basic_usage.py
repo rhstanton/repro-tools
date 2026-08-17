@@ -1,7 +1,7 @@
 """Basic usage example for repro-tools."""
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Add parent to path for local development
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -32,5 +32,5 @@ auto_build_record(
 )
 
 print(f"✓ Provenance recorded: {provenance_file}")
-print(f"\nContents:")
+print("\nContents:")
 print(provenance_file.read_text())
