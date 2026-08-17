@@ -26,6 +26,7 @@ the broken recipe too -- which is how the first version of this test fooled us.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -52,10 +53,36 @@ def _git(repo: Path, *args: str) -> None:
 
 
 def _make(repo: Path, recipe: str) -> subprocess.CompletedProcess:
+    """Run the recipe in a make that is not talking to an outer make.
+
+    These tests are themselves usually run from `make test`, so without this the
+    nested make inherits MAKEFLAGS/MAKELEVEL, decides it is recursive, and
+    prints its own "Entering directory"/"Leaving directory" lines into stdout.
+    That is make talking about make; it says nothing about the recipe. Stripping
+    those variables and passing --no-print-directory keeps the captured output
+    to what the recipe itself emitted.
+    """
     (repo / "Makefile").write_text(recipe)
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in {"MAKEFLAGS", "MAKELEVEL", "MFLAGS"}
+    }
     return subprocess.run(
-        ["make", "init-submodules"], cwd=repo, capture_output=True, text=True
+        ["make", "--no-print-directory", "init-submodules"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=env,
     )
+
+
+def _recipe_output(result: subprocess.CompletedProcess) -> str:
+    """Output the recipe produced, with any residual make chatter removed."""
+    lines = [
+        ln for ln in result.stdout.splitlines() if not ln.startswith(("make[", "make:"))
+    ]
+    return "\n".join(lines).strip()
 
 
 def _repo(tmp_path: Path) -> Path:
@@ -92,7 +119,7 @@ def test_no_gitmodules_is_silent_success(tmp_path):
     """A project with no submodules has nothing to do, and says nothing."""
     result = _make(_repo(tmp_path), _recipe())
     assert result.returncode == 0
-    assert result.stdout.strip() == ""
+    assert _recipe_output(result) == ""
 
 
 @pytest.mark.slow
