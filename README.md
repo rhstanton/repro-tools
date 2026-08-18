@@ -191,26 +191,68 @@ Build records are stored as YAML:
 
 ```yaml
 artifact: price_base
-built_at_utc: '2026-01-18T05:30:00+00:00'
+built_at_utc: '2026-08-18T05:30:00+00:00'
 command: [python, build_price_base.py, --data, data.csv]
+repo_root: /home/you/projects/housing
+path_convention: relative-to-repo-root-where-possible
 git:
   is_git_repo: true
   commit: cbb163e7a1b2c3d4...
   branch: main
   dirty: false
+  untracked_count: 0
+  untracked: []
+  untracked_truncated: false
+  upstream: origin/main
   ahead: 0
   behind: 0
 inputs:
-  - path: /path/to/data.csv
+  - path: data/data.csv
     sha256: 48917387ef250e...
     bytes: 325
-    mtime: 1737179400.123
 outputs:
-  - path: /path/to/output/figure.pdf
+  - path: output/figures/figure.pdf
     sha256: 3855687dcbeff3...
     bytes: 12482
-    mtime: 1737179410.456
 ```
+
+### Field notes
+
+**`path`** is relative to `repo_root`, which is recorded once. A file outside
+the repository — data on another volume, say — cannot be made relative and is
+recorded absolute; that is information rather than a failure, since it tells a
+replicator the build depended on something the repository does not contain.
+
+Paths were absolute before 2026-08-18. That meant records could not be compared
+across machines (every path differed, so diffing two byte-identical builds was
+pure noise), and because `paper/provenance.yml` is committed to the paper
+repository and can accompany a submission, it published the author's home
+directory. `resolve_recorded_path(entry, record)` reads both conventions, so
+older records keep working.
+
+**`mtime` is not recorded.** It changes on every checkout and every file copy,
+so it made two identical builds produce different records while saying nothing
+about content that `sha256` does not say better. Records that differ for
+reasons unrelated to their subject do not get compared, and a record nobody
+compares is decoration.
+
+**`dirty` means tracked content differs from HEAD** — staged or unstaged.
+Untracked files do **not** set it. They are reported separately in
+`untracked_count` / `untracked` instead.
+
+That split is deliberate. `dirty` is what publishing gates on, and a gate that
+fires constantly gets switched off; `ALLOW_DIRTY=1` in a CI config disables it
+permanently and silently. But an untracked script is a perfectly good candidate
+for whatever produced the artifact being described, so a record calling such a
+tree clean is being generous about something it never looked at. The numbers in
+one submitted paper turned out to come from code that predated its repository's
+first commit — untracked work, published results. Reporting it without gating on
+it keeps the record honest and the gate usable; a consumer wanting the strict
+meaning reads `untracked_count`.
+
+Gitignored files are not untracked, so a project that ignores its outputs sees
+an empty list. The listing is capped at `core.UNTRACKED_LIMIT` (50) with
+`untracked_truncated` set; `untracked_count` is always exact.
 
 ## Integration with Make
 

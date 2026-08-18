@@ -207,7 +207,21 @@ def publish_analyses(
     prov_path = paper_root / "provenance.yml"
     prov = load_yml(prov_path) if prov_path.exists() else {}
     prov.setdefault("paper_provenance_version", 1)
-    prov.setdefault("analysis_git", gitinfo)
+    # Assigned, not setdefault. `analysis_git` describes the analysis repository
+    # AT THIS PUBLISH, and sits directly beside `last_updated_utc`. With
+    # setdefault it was written once and then frozen forever while the timestamp
+    # kept refreshing, so a record published today could assert -- with today's
+    # date on it -- that the results came from a tree under no version control:
+    #
+    #     last_updated_utc: '2026-08-18T07:03:10+00:00'
+    #     analysis_git:
+    #       is_git_repo: false
+    #
+    # That is exactly what project_template's committed paper/provenance.yml
+    # said, having inherited the value from January. paper/provenance.yml is
+    # committed to the paper repository and can accompany a submission, so this
+    # was a false statement in a published record.
+    prov["analysis_git"] = gitinfo
     prov.setdefault("artifacts", {})
 
     # Analysis-level publishing: clear file-level tracking
@@ -295,7 +309,8 @@ def publish_files(
     prov_path = paper_root / "provenance.yml"
     prov = load_yml(prov_path) if prov_path.exists() else {}
     prov.setdefault("paper_provenance_version", 1)
-    prov.setdefault("analysis_git", gitinfo)
+    # See the note in publish_analyses: this must be refreshed, not defaulted.
+    prov["analysis_git"] = gitinfo
 
     # File-level publishing: clear analysis-level tracking
     prov["files"] = {}

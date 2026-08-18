@@ -13,6 +13,10 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+# Cap on how many untracked paths a single record will list. The count is
+# always exact; only the listing is bounded.
+UNTRACKED_LIMIT = 50
+
 # Global flag to track if provenance should be recorded
 _should_record_provenance = True
 _provenance_recorded = False
@@ -49,7 +53,11 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
         is_git_repo: bool
         commit: str (full SHA) or None
         branch: str or None
-        dirty: bool (uncommitted changes)
+        dirty: bool (TRACKED content differs from HEAD; untracked files
+               do not count -- see untracked_count)
+        untracked_count: int (files git neither tracks nor ignores)
+        untracked: list[str] (up to UNTRACKED_LIMIT of them, sorted)
+        untracked_truncated: bool (whether that list was cut short)
         upstream: str or None
         ahead: int or None (commits ahead of upstream)
         behind: int or None (commits behind upstream)
@@ -59,7 +67,13 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
         return {"is_git_repo": False}
 
     dirty = False
-    # Check for uncommitted changes
+    # Check for uncommitted changes.
+    #
+    # `dirty` deliberately means TRACKED content differing from HEAD, and
+    # nothing else. It is what publishing gates on, and a gate that fires
+    # constantly gets switched off -- which is strictly worse than a narrow one,
+    # because ALLOW_DIRTY=1 in a CI config disables the check permanently and
+    # silently.
     try:
         subprocess.check_call(["git", "diff", "--quiet"], cwd=str(repo_root))
         subprocess.check_call(
@@ -67,6 +81,34 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
         )
     except Exception:
         dirty = True
+
+    # Untracked files are recorded SEPARATELY rather than folded into `dirty`.
+    #
+    # The record and the policy are different things, and conflating them into
+    # one boolean is why this was hard to decide. An untracked script is a
+    # perfectly good candidate for whatever produced the artifact being
+    # described, so provenance that says "clean" about such a tree is being
+    # generous about something it has not looked at. This is not hypothetical:
+    # the numbers in a submitted paper were once produced by code that predated
+    # its repository's first commit -- untracked work, published results, and a
+    # provenance record would have called that tree clean.
+    #
+    # So: report it, do not gate on it. A consumer that wants the strict meaning
+    # can read `untracked_count`; publishing keeps its current sensitivity.
+    #
+    # git status --porcelain already excludes gitignored files, so a project
+    # that ignores its outputs sees an empty list here. The list is capped
+    # because "a project that ignores its outputs" is exactly the kind of
+    # assumption that should not be able to produce a 10,000-entry record.
+    untracked: List[str] = []
+    untracked_count = 0
+    untracked_truncated = False
+    out = _run_git(["ls-files", "--others", "--exclude-standard"], cwd=repo_root)
+    if out:
+        entries = [line for line in out.splitlines() if line.strip()]
+        untracked_count = len(entries)
+        untracked = sorted(entries)[:UNTRACKED_LIMIT]
+        untracked_truncated = untracked_count > UNTRACKED_LIMIT
 
     branch = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root)
     upstream = _run_git(
@@ -88,6 +130,9 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
         "commit": commit,
         "branch": branch,
         "dirty": dirty,
+        "untracked_count": untracked_count,
+        "untracked": untracked,
+        "untracked_truncated": untracked_truncated,
         "upstream": upstream,
         "ahead": ahead,
         "behind": behind,
@@ -97,6 +142,56 @@ def git_state(repo_root: Path) -> Dict[str, Any]:
 def now_utc_iso() -> str:
     """Return current UTC time in ISO format."""
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _file_record(path: Path, repo_root: Path) -> Dict[str, Any]:
+    """Describe one file for a provenance record.
+
+    PATHS ARE RELATIVE TO THE REPOSITORY ROOT, which is recorded once per record
+    as `repo_root`. They used to be absolute, and that had two costs:
+
+      * records could not be compared across machines -- every path differed, so
+        diffing two byte-identical builds was pure noise;
+      * `paper/provenance.yml` IS committed (it lives in the paper repository,
+        which is typically synced to Overleaf and can accompany a submission),
+        so absolute paths published the author's home directory.
+
+    A file outside the repository -- data on another volume, say -- cannot be
+    made relative and is recorded absolute. That is information, not a failure:
+    it says the build depended on something outside the repository, which is
+    exactly the kind of thing a replicator needs to know.
+
+    `mtime` is deliberately NOT recorded. It changes on every checkout and every
+    file copy, so it made two identical builds produce different records while
+    saying nothing about content that sha256 does not say better. Records that
+    differ for reasons unrelated to their subject do not get compared, and a
+    record nobody compares is decoration.
+    """
+    resolved = path.resolve()
+    try:
+        recorded = str(resolved.relative_to(repo_root))
+    except ValueError:
+        recorded = str(resolved)
+    return {
+        "path": recorded,
+        "sha256": sha256_file(resolved),
+        "bytes": resolved.stat().st_size,
+    }
+
+
+def resolve_recorded_path(entry: Dict[str, Any], record: Dict[str, Any]) -> Path:
+    """Turn a recorded path back into a usable one.
+
+    Handles both conventions, because records written before 2026-08-18 store
+    absolute paths and have no `repo_root`. An absolute recorded path is used as
+    written; a relative one is joined to the record's `repo_root`, falling back
+    to the current directory when a very old record lacks it.
+    """
+    recorded = Path(entry["path"])
+    if recorded.is_absolute():
+        return recorded
+    root = record.get("repo_root")
+    return (Path(root) if root else Path.cwd()) / recorded
 
 
 def write_build_record(
@@ -128,38 +223,17 @@ def write_build_record(
         outputs: List of output file paths
     """
     out_meta.parent.mkdir(parents=True, exist_ok=True)
-
-    input_records: List[Dict[str, Any]] = []
-    for p in inputs:
-        p = p.resolve()
-        input_records.append(
-            {
-                "path": str(p),
-                "sha256": sha256_file(p),
-                "bytes": p.stat().st_size,
-                "mtime": p.stat().st_mtime,
-            }
-        )
-
-    output_records: List[Dict[str, Any]] = []
-    for p in outputs:
-        p = p.resolve()
-        output_records.append(
-            {
-                "path": str(p),
-                "sha256": sha256_file(p),
-                "bytes": p.stat().st_size,
-                "mtime": p.stat().st_mtime,
-            }
-        )
+    root = Path(repo_root).resolve()
 
     record: Dict[str, Any] = {
         "artifact": artifact_name,
         "built_at_utc": now_utc_iso(),
         "command": command,
+        "repo_root": str(root),
+        "path_convention": "relative-to-repo-root-where-possible",
         "git": git_state(repo_root),
-        "inputs": input_records,
-        "outputs": output_records,
+        "inputs": [_file_record(p, root) for p in inputs],
+        "outputs": [_file_record(p, root) for p in outputs],
     }
 
     tmp = out_meta.with_suffix(out_meta.suffix + ".tmp")

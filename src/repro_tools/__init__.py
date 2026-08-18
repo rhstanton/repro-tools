@@ -28,6 +28,7 @@ from repro_tools.core import (
     enable_auto_provenance,
     git_state,
     now_utc_iso,
+    resolve_recorded_path,
     sha256_file,
     write_build_record,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "sha256_file",
     "now_utc_iso",
     "write_build_record",
+    "resolve_recorded_path",
     "auto_build_record",
     "auto_provenance_from_config",
     "enable_auto_provenance",

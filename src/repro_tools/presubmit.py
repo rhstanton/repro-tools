@@ -16,6 +16,8 @@ from pathlib import Path
 
 import yaml
 
+from repro_tools.core import resolve_recorded_path
+
 
 class CheckResult:
     """Result of a check.
@@ -471,7 +473,11 @@ class PreSubmitChecker:
                 data = yaml.safe_load(f)
 
             for output in data.get("outputs", []):
-                filepath = Path(output["path"])
+                # Recorded paths are relative to the record's repo_root since
+                # 2026-08-18; older records store them absolute. The helper
+                # handles both, so a project with a mix of old and new records
+                # keeps working.
+                filepath = resolve_recorded_path(output, data)
                 expected_hash = output.get("sha256")
 
                 if not filepath.exists():
