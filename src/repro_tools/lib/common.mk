@@ -198,16 +198,21 @@ diff-outputs:
 	  --current-dir output
 	@echo ""
 
+# `repro-check` IS the pre-submission checklist -- there is no --pre-submit
+# flag and never was. These targets passed one until 2026-08-17, which went
+# unnoticed because `$(PYTHON) -m repro_tools.cli check` had no module entry
+# point and so ignored every argument and exited 0. Fixing the entry point is
+# what made the wrong flags visible.
 .PHONY: pre-submit
 pre-submit:
 	@echo "Running pre-submission checklist..."
-	@$(REPRO_CHECK) --pre-submit
+	@$(REPRO_CHECK)
 	@echo ""
 
 .PHONY: pre-submit-strict
 pre-submit-strict:
 	@echo "Running pre-submission checklist (strict mode)..."
-	@$(REPRO_CHECK) --pre-submit --strict
+	@$(REPRO_CHECK) --strict
 	@echo ""
 
 .PHONY: replication-report

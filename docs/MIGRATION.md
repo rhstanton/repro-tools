@@ -67,12 +67,11 @@ auto_build_record(
 
 ```makefile
 publish-figures:
-	repro-publish analyses \
+	$(PYTHON) -m repro_tools.cli publish analyses $(PUBLISH_ANALYSES) \
 		--project-root . \
 		--paper-root $(PAPER_DIR) \
-		--names "$(PUBLISH_ANALYSES)" \
-		--kinds figures \
-		$(if $(filter 1,$(REQUIRE_CURRENT_HEAD)),--require-current-head)
+		--kind figures \
+		--require-current-head $(REQUIRE_CURRENT_HEAD)
 ```
 
 **Option B**: Keep Python wrappers

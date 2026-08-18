@@ -161,11 +161,51 @@ def interesting(path: str) -> bool:
     return not any(path.startswith(p) for p in SKIP_PREFIXES)
 
 
+USAGE = """usage: repro-template-diff [--verbose] [--template-ref REF]
+
+Show what has changed in the template since this project was generated from it.
+
+options:
+  --verbose             list every differing file, not just a summary
+  --template-ref REF    compare against REF instead of the template's main
+  -h, --help            show this message and exit
+
+Reads template-origin.toml in the current directory to learn which template
+commit this project came from.
+"""
+
+
 def main(argv: list[str]) -> int:
+    """Parse argv by hand, but strictly.
+
+    Argparse is avoided here only because this module predates the console
+    script and is also imported directly. What is NOT optional is rejecting
+    input it does not understand: until 2026-08-17 this parsed with
+    `"--verbose" in argv` and silently ignored everything else, so a typo like
+    `--verbos` ran a full template diff with verbosity off and reported
+    success. There was no --help either, so `repro-template-diff --help`
+    fetched the template and diffed it.
+    """
+    if "-h" in argv or "--help" in argv:
+        print(USAGE)
+        return 0
+
     verbose = "--verbose" in argv
     ref = "main"
     if "--template-ref" in argv:
-        ref = argv[argv.index("--template-ref") + 1]
+        index = argv.index("--template-ref")
+        if index + 1 >= len(argv):
+            print("--template-ref needs a value", file=sys.stderr)
+            print(USAGE, file=sys.stderr)
+            return 2
+        ref = argv[index + 1]
+
+    known = {"--verbose", "--template-ref", ref}
+    unknown = [a for a in argv if a not in known]
+    if unknown:
+        print(f"unknown argument(s): {' '.join(unknown)}", file=sys.stderr)
+        print(USAGE, file=sys.stderr)
+        return 2
 
     project = Path.cwd()
     origin = read_origin(project)

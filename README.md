@@ -154,16 +154,27 @@ repro-record \
 ### Publish Outputs
 
 ```bash
-# Publish complete analyses
-repro-publish analyses \
+# Publish complete analyses (names are positional, not --names)
+repro-publish analyses price_base remodel_base \
     --paper-root paper \
-    --names "price_base remodel_base" \
-    --require-current-head
+    --project-root . \
+    --require-current-head 1
 
-# Publish specific files
-repro-publish files \
+# Restrict to one kind of artifact (repeatable; default is all kinds)
+repro-publish analyses price_base \
     --paper-root paper \
-    --files "output/figures/fig1.pdf output/tables/tab1.tex"
+    --project-root . \
+    --kind figures
+
+# Publish specific files (also positional)
+repro-publish files output/figures/fig1.pdf output/tables/tab1.tex \
+    --paper-root paper \
+    --project-root .
+
+# The same commands, run as a module so the interpreter is the project's own
+# .venv rather than whatever `repro-publish` is first on PATH. This is the form
+# Makefiles should use:
+python -m repro_tools.cli publish analyses price_base --paper-root paper --project-root .
 ```
 
 ## Git Safety Checks

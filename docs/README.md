@@ -83,16 +83,16 @@ repro-record \
     --inputs data.csv \
     --outputs output/figure.pdf output/table.tex
 
-# Publish analyses
-repro-publish analyses \
+# Publish analyses (names are positional; --project-root is required)
+repro-publish analyses price_base remodel_base \
     --paper-root paper \
-    --names "price_base remodel_base" \
-    --require-current-head
+    --project-root . \
+    --require-current-head 1
 
-# Publish specific files
-repro-publish files \
+# Publish specific files (also positional)
+repro-publish files output/figures/fig1.pdf \
     --paper-root paper \
-    --files "output/figures/fig1.pdf"
+    --project-root .
 ```
 
 ## Migration from project_template

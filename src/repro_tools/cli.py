@@ -71,6 +71,17 @@ def publish():
         default=0,
         help="Require artifacts from current HEAD",
     )
+    # publish_analyses has always accepted `kinds`; the CLI just never exposed
+    # it. Makefiles publish figures and tables under separate stamps so that
+    # touching one table does not republish every figure, and they were passing
+    # `--kind figures` to a parser that had no such option.
+    analyses_parser.add_argument(
+        "--kind",
+        action="append",
+        dest="kinds",
+        choices=["figures", "tables"],
+        help="Restrict to one artifact kind; repeatable. Default: all kinds.",
+    )
 
     # Files mode
     files_parser = subparsers.add_parser("files", help="Publish specific files")
@@ -98,6 +109,7 @@ def publish():
             project_root=args.project_root,
             paper_root=args.paper_root,
             analysis_names=args.analyses,
+            kinds=args.kinds,
             allow_dirty=bool(args.allow_dirty),
             require_not_behind=bool(args.require_not_behind),
             require_current_head=bool(args.require_current_head),
@@ -198,3 +210,101 @@ def template_diff():
     from repro_tools.template_update import main as template_diff_main
 
     sys.exit(template_diff_main(sys.argv[1:]))
+
+
+# ==============================================================================
+# Module entry point
+# ==============================================================================
+#
+# WHY THIS EXISTS, AND WHAT ITS ABSENCE COST
+#
+# Every console script above is reachable as `repro-publish`, `repro-check` and
+# so on. But project Makefiles do not call the console scripts -- they call the
+# module, so that the interpreter is the project's own .venv rather than
+# whatever is first on PATH:
+#
+#     REPRO_PUBLISH := $(PYTHON) -m repro_tools.cli publish
+#
+# Until 2026-08-17 this file had no `if __name__ == "__main__"` block. A module
+# run with `-m` and no such block is simply IMPORTED: every function definition
+# executes, no function is called, every argument is ignored, and the process
+# exits 0. So the command above did nothing, successfully, and make -- seeing a
+# zero exit -- proceeded to `touch` the stamp that records the work as done.
+#
+# In project_template that silently disabled `make publish`, `make diff-outputs`,
+# `make pre-submit`, `make pre-submit-strict` and `make replication-report`: the
+# entire publishing and verification surface, including the git safety gates
+# that are the reason publishing is supposed to be the only sanctioned route
+# from output/ into paper/. `make publish` printed "Publishing complete!" over
+# a paper/ directory it had not touched since January.
+#
+# Demonstration of the failure mode, which is worth keeping because it looks
+# exactly like success:
+#
+#     $ python -m repro_tools.cli publish --nonsense-flag-that-does-not-exist
+#     $ echo $?
+#     0
+#
+# An unrecognized flag is the cheapest possible probe for "is anything parsing
+# my arguments", and it answered no.
+#
+# The dispatcher below maps a subcommand onto the same functions the console
+# scripts use, so there is one implementation and two ways in. sys.argv is
+# rewritten so that argparse inside each function reports the name a user typed.
+
+_COMMANDS = {
+    "record": record_provenance,
+    "publish": publish,
+    "compare": compare,
+    "sysinfo": sysinfo,
+    "check": presubmit,
+    "report": report_gen,
+    "template-diff": template_diff,
+}
+
+
+def main(argv=None) -> int:
+    """Dispatch `python -m repro_tools.cli <command> [args...]`.
+
+    Returns an exit status rather than calling sys.exit, so it is testable.
+    An unknown or missing command is an error (status 2), never a silent
+    success -- that was the whole defect.
+    """
+    argv = list(sys.argv[1:] if argv is None else argv)
+
+    if not argv or argv[0] in ("-h", "--help"):
+        _print_usage()
+        return 0 if argv else 2
+
+    command, rest = argv[0], argv[1:]
+    if command not in _COMMANDS:
+        print(f"repro-tools: unknown command {command!r}", file=sys.stderr)
+        _print_usage(sys.stderr)
+        return 2
+
+    # argparse reads sys.argv, so present it the command the user typed.
+    saved = sys.argv
+    sys.argv = [f"repro-{command}", *rest]
+    try:
+        result = _COMMANDS[command]()
+    finally:
+        sys.argv = saved
+    return 0 if result is None else int(result)
+
+
+def _print_usage(stream=None) -> None:
+    stream = stream or sys.stdout
+    print("usage: python -m repro_tools.cli <command> [args...]", file=stream)
+    print("", file=stream)
+    print("commands:", file=stream)
+    for name in _COMMANDS:
+        print(f"  {name}", file=stream)
+    print("", file=stream)
+    print(
+        "Each command also exists as a console script, e.g. `repro-publish`.",
+        file=stream,
+    )
+
+
+if __name__ == "__main__":
+    sys.exit(main())
