@@ -61,6 +61,33 @@ export PYTHON_JULIAPKG_PROJECT="$REPRO_PROJECT_ROOT/.julia"
 export JULIA_PROJECT="$REPRO_PROJECT_ROOT/env"
 export JULIA_DEPOT_PATH="$REPRO_PROJECT_ROOT/.julia"
 export JULIA_LOAD_PATH="$JULIA_PROJECT:$PYTHON_JULIAPKG_PROJECT:@stdlib"
+
+# Optional GPU environment, layered on when it exists.
+#
+# CUDA.jl is never a dependency of env/Project.toml -- that would force a GPU
+# stack onto every machine, including the Macs. `JULIA_ENABLE_CUDA=1 make
+# environment` installs it into $REPRO_PROJECT_ROOT/.julia/gpu-env instead,
+# which is gitignored and machine-local, and it is put on the load path here so
+# `using CUDA` resolves. On a machine that never opted in, the directory does
+# not exist and this is a no-op: the project stays CPU-only with nothing to
+# switch.
+#
+# This lives in env.sh, not in a wrapper or an analysis script, because the
+# assignment above is UNCONDITIONAL and therefore destroys any JULIA_LOAD_PATH
+# set by the caller. Until 2026-08-17 the layering was done only in Python, by
+# run_did.py, after the wrapper had already run -- so GPU support existed
+# through juliacall and was invisible to `runjulia`, and pre-setting
+# JULIA_LOAD_PATH before a wrapper was silently discarded. One feature, two
+# entry points, different answers: the exact split that consolidating the
+# environment into this file was meant to end.
+#
+# run_did.py's own layering is now redundant rather than load-bearing. It is
+# harmless (it appends only if the entry is absent) and is kept so the analysis
+# still finds the GPU if invoked through some future path that misses env.sh.
+if [[ -f "$REPRO_PROJECT_ROOT/.julia/gpu-env/Project.toml" ]]; then
+    export JULIA_LOAD_PATH="$JULIA_LOAD_PATH:$REPRO_PROJECT_ROOT/.julia/gpu-env"
+fi
+
 export JULIA_CONDAPKG_BACKEND=Null
 
 # Thread count belongs here rather than in a wrapper or a Makefile, because the
