@@ -18,21 +18,42 @@ import yaml
 
 
 class CheckResult:
-    """Result of a check."""
+    """Result of a check.
 
-    def __init__(self, name, passed, message="", details=""):
+    `warning` marks a check that passes only because strict mode is off. It
+    exists because the output was actively misleading without it: a stale
+    provenance record is recorded as `passed = not self.strict`, so a
+    non-strict run printed
+
+        ✅ Provenance Current    5 artifacts from old commits
+
+    a green tick beside a sentence saying the artifacts do not match HEAD. The
+    verdict was defensible -- non-strict pre-submit is advisory -- but the glyph
+    claimed something the message denied, and the glyph is what people read.
+    """
+
+    def __init__(self, name, passed, message="", details="", warning=False):
         self.name = name
         self.passed = passed
         self.message = message
         self.details = details
+        self.warning = warning
 
 
 class PreSubmitChecker:
     """Pre-submission checklist runner."""
 
-    def __init__(self, repo_root, strict=False):
+    # Seconds allowed for the project's whole test suite. The old value was a
+    # hard-coded 60, which no real research project can meet -- this template's
+    # own suite takes about six minutes -- so "Tests Pass" reported "Tests timed
+    # out" on every run. A check that always fails teaches people to ignore the
+    # report, which costs as much as one that can never fail.
+    DEFAULT_TEST_TIMEOUT = 900
+
+    def __init__(self, repo_root, strict=False, test_timeout=DEFAULT_TEST_TIMEOUT):
         self.repo_root = Path(repo_root)
         self.strict = strict
+        self.test_timeout = test_timeout
         self.results = []
 
     def run_all_checks(self):
@@ -100,6 +121,7 @@ class PreSubmitChecker:
                     not self.strict,
                     "Uncommitted changes detected",
                     result.stdout.strip()[:200],
+                    warning=not self.strict,
                 )
             )
         else:
@@ -112,12 +134,22 @@ class PreSubmitChecker:
             )
 
         # Check if behind upstream
+        # capture_output=True already redirects both streams; passing stderr=
+        # as well raises ValueError before git is even spawned:
+        #   "stdout and stderr arguments may not be used with capture_output."
+        # stderr is captured rather than discarded because this command fails
+        # routinely and for an ordinary reason -- @{u} does not resolve when the
+        # branch has no upstream, which is the normal state on a CI runner --
+        # and the message is worth having when diagnosing.
+        #
+        # This line had never executed. `make pre-submit` reached it only after
+        # cli.py gained a __main__ block on 2026-08-17; before that the whole
+        # command was an import that exited 0.
         result = subprocess.run(
             ["git", "rev-list", "--count", "@{u}..HEAD"],
             capture_output=True,
             text=True,
             cwd=self.repo_root,
-            stderr=subprocess.DEVNULL,
         )
 
         if result.returncode == 0:
@@ -137,6 +169,7 @@ class PreSubmitChecker:
                         "Up to Date with Remote",
                         not self.strict,
                         f"Behind upstream by {behind} commit(s)",
+                        warning=not self.strict,
                     )
                 )
             else:
@@ -194,6 +227,7 @@ class PreSubmitChecker:
                     "Julia Environment",
                     not self.strict,
                     "Julia not installed (optional)",
+                    warning=not self.strict,
                 )
             )
 
@@ -210,6 +244,7 @@ class PreSubmitChecker:
                     "Data Checksums",
                     not self.strict,
                     "CHECKSUMS.txt not found",
+                    warning=not self.strict,
                 )
             )
             return
@@ -220,31 +255,38 @@ class PreSubmitChecker:
                 line.strip() for line in f if line.strip() and not line.startswith("#")
             ]
 
-        all_match = True
+        # Missing and altered are different failures with different fixes, and
+        # both used to collapse into one boolean whose whole report was "Some
+        # data files don't match checksums / Check data/CHECKSUMS.txt". That
+        # tells the reader nothing they did not already know: not which file,
+        # not whether it is absent or changed, not what the hashes were. A
+        # check is only as useful as the next action it makes possible.
+        import hashlib
+
+        missing = []
+        altered = []
         for line in lines:
             parts = line.split()
-            if len(parts) >= 2:
-                expected_hash = parts[0]
-                filename = " ".join(parts[1:])
-                filepath = data_dir / filename
+            if len(parts) < 2:
+                continue
+            expected_hash = parts[0]
+            filename = " ".join(parts[1:])
+            filepath = data_dir / filename
 
-                if not filepath.exists():
-                    all_match = False
-                    continue
+            if not filepath.exists():
+                missing.append(filename)
+                continue
 
-                # Compute actual hash
-                import hashlib
+            h = hashlib.sha256()
+            with open(filepath, "rb") as f:
+                for chunk in iter(lambda: f.read(8192), b""):
+                    h.update(chunk)
+            actual_hash = h.hexdigest()
 
-                h = hashlib.sha256()
-                with open(filepath, "rb") as f:
-                    for chunk in iter(lambda: f.read(8192), b""):
-                        h.update(chunk)
-                actual_hash = h.hexdigest()
+            if actual_hash != expected_hash:
+                altered.append((filename, expected_hash, actual_hash))
 
-                if actual_hash != expected_hash:
-                    all_match = False
-
-        if all_match:
+        if not missing and not altered:
             self.results.append(
                 CheckResult(
                     "Data Checksums",
@@ -253,12 +295,33 @@ class PreSubmitChecker:
                 )
             )
         else:
+            summary = []
+            if missing:
+                summary.append(f"{len(missing)} missing")
+            if altered:
+                summary.append(f"{len(altered)} changed")
+
+            details = []
+            for filename in missing:
+                details.append(f"missing: {filename}")
+            for filename, expected_hash, actual_hash in altered:
+                details.append(
+                    f"changed: {filename}\n"
+                    f"    recorded {expected_hash[:16]}...\n"
+                    f"    actual   {actual_hash[:16]}..."
+                )
+            details.append(
+                "A changed input invalidates every result built from it. If the "
+                "change is intended, rebuild and re-record data/CHECKSUMS.txt; "
+                "if not, restore the file."
+            )
+
             self.results.append(
                 CheckResult(
                     "Data Checksums",
                     False,
-                    "Some data files don't match checksums",
-                    "Check data/CHECKSUMS.txt",
+                    f"Data files do not match CHECKSUMS.txt ({', '.join(summary)})",
+                    "\n".join(details),
                 )
             )
 
@@ -296,6 +359,7 @@ class PreSubmitChecker:
                     "Artifacts Built",
                     not self.strict,
                     "Could not determine artifact list",
+                    warning=not self.strict,
                 )
             )
             return
@@ -387,6 +451,7 @@ class PreSubmitChecker:
                     not self.strict,
                     f"{len(stale_artifacts)} artifacts from old commits",
                     f"Stale: {', '.join(stale_artifacts)}\nRun: make clean && make all",
+                    warning=not self.strict,
                 )
             )
 
@@ -485,6 +550,7 @@ class PreSubmitChecker:
                     "Tests Pass",
                     not self.strict,
                     "No tests directory (optional)",
+                    warning=not self.strict,
                 )
             )
             return
@@ -496,7 +562,7 @@ class PreSubmitChecker:
                 capture_output=True,
                 text=True,
                 cwd=self.repo_root,
-                timeout=60,
+                timeout=self.test_timeout,
             )
 
             if result.returncode == 0:
@@ -521,7 +587,9 @@ class PreSubmitChecker:
                 CheckResult(
                     "Tests Pass",
                     False,
-                    "Tests timed out",
+                    f"Tests timed out after {self.test_timeout}s",
+                    "Raise the limit with --test-timeout if the suite is "
+                    "legitimately slower than this.",
                 )
             )
         except Exception as e:
@@ -530,6 +598,7 @@ class PreSubmitChecker:
                     "Tests Pass",
                     not self.strict,
                     f"Could not run tests: {e}",
+                    warning=not self.strict,
                 )
             )
 
@@ -545,7 +614,12 @@ class PreSubmitChecker:
         total = len(self.results)
 
         for result in self.results:
-            status = "✅" if result.passed else "❌"
+            if not result.passed:
+                status = "❌"
+            elif result.warning:
+                status = "⚠️ "
+            else:
+                status = "✅"
             print(f"{status} {result.name:30s} {result.message}")
             if result.details and not result.passed:
                 print(f"   {result.details}")
@@ -581,9 +655,21 @@ def main():
         default=Path.cwd(),
         help="Repository root directory",
     )
+    parser.add_argument(
+        "--test-timeout",
+        type=int,
+        default=PreSubmitChecker.DEFAULT_TEST_TIMEOUT,
+        metavar="SECONDS",
+        help=(
+            "Seconds allowed for the test suite "
+            f"(default: {PreSubmitChecker.DEFAULT_TEST_TIMEOUT})"
+        ),
+    )
     args = parser.parse_args()
 
-    checker = PreSubmitChecker(args.repo_root, strict=args.strict)
+    checker = PreSubmitChecker(
+        args.repo_root, strict=args.strict, test_timeout=args.test_timeout
+    )
     return checker.run_all_checks()
 
 
