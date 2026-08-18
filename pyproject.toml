@@ -52,6 +52,24 @@ repro-template-diff = "repro_tools.cli:template_diff"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# The shared build machinery must ship with the package.
+#
+# src/repro_tools/lib/ holds common.mk, stata.mk and env.sh -- the make targets
+# and environment definition that consuming projects include and source. Without
+# this stanza setuptools packages only *.py, so `pip install repro-tools`
+# installed the Python API and an EMPTY lib/ directory.
+#
+# Discovered 2026-08-18 while trying to give fire the shared env.sh: fire
+# consumes repro-tools as a pinned git dependency rather than as a submodule, so
+# the files simply were not there. project_template never noticed because it
+# vendors the submodule and reads the files from the source tree, which is the
+# one consumer that cannot detect this.
+#
+# So the whole "one implementation, shared" argument was unavailable to any
+# project that installs the package the normal way.
+[tool.setuptools.package-data]
+repro_tools = ["lib/*.mk", "lib/*.sh"]
+
 # No [tool.black] block. Black was removed in favor of ruff alone, and this
 # block outlived it declaring line-length = 100 while [tool.ruff] below says 88.
 # Two formatters that disagree on line length do not converge: each reformats

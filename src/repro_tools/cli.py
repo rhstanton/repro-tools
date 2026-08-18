@@ -252,7 +252,37 @@ def template_diff():
 # scripts use, so there is one implementation and two ways in. sys.argv is
 # rewritten so that argparse inside each function reports the name a user typed.
 
+
+def lib_path():
+    """CLI entry point: print the directory holding common.mk / stata.mk / env.sh.
+
+    Exists so a Makefile can locate the shared machinery without knowing whether
+    repro-tools is a vendored submodule or an installed package:
+
+        REPRO_LIB := $(shell $(PYTHON) -m repro_tools.cli lib-path)
+        include $(REPRO_LIB)/common.mk
+
+    It parses arguments even though it takes none. The first version just
+    printed and returned, which meant `lib-path --nonsense` exited 0 -- and the
+    suite caught it immediately, because that is precisely the failure this
+    package spent a day fixing: a command that ignores its input cannot tell you
+    that you asked for something it does not do.
+    """
+    from repro_tools.core import lib_dir
+
+    parser = argparse.ArgumentParser(
+        prog="repro-lib-path",
+        description=(
+            "Print the directory containing the shared build machinery "
+            "(common.mk, stata.mk, env.sh)."
+        ),
+    )
+    parser.parse_args()
+    print(lib_dir())
+
+
 _COMMANDS = {
+    "lib-path": lib_path,
     "record": record_provenance,
     "publish": publish,
     "compare": compare,

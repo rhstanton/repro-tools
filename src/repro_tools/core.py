@@ -22,6 +22,31 @@ _should_record_provenance = True
 _provenance_recorded = False
 
 
+def lib_dir() -> Path:
+    """Directory holding the shared build machinery (common.mk, stata.mk, env.sh).
+
+    Consuming projects include these from their makefiles:
+
+        REPRO_LIB := $(shell python -m repro_tools.cli lib-path)
+        include $(REPRO_LIB)/common.mk
+
+    They are package data, so this resolves inside the installed package as well
+    as in a source checkout. Until 2026-08-18 they were not packaged at all --
+    setuptools ships only *.py without an explicit package-data stanza -- so
+    `pip install repro-tools` produced an empty lib/ directory and none of this
+    machinery reached a project that consumed the package rather than vendoring
+    the repository. project_template could not notice, because it vendors the
+    submodule and reads the files from the source tree.
+
+    NOTE ON env.sh. common.mk and stata.mk are usable from here, but env.sh is
+    not, for a project that installs repro-tools into the very virtualenv env.sh
+    exists to configure: sourcing it would require the environment it is meant
+    to create. Such a project needs env.sh on disk before any install -- as a
+    submodule, or as its own copy kept in step deliberately.
+    """
+    return Path(__file__).resolve().parent / "lib"
+
+
 def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
     """Compute SHA256 checksum of a file."""
     h = hashlib.sha256()
