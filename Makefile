@@ -35,7 +35,7 @@ help:
 # Set up and test
 all: env test
 
-# Create conda environment in .env/ and install package in editable mode
+# Create the environment and install the package in editable mode
 env:
 	@echo "Setting up conda environment in $(ENV_DIR)/..."
 	@if [ ! -d "$(ENV_DIR)" ]; then \

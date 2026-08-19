@@ -21,7 +21,7 @@ make publish
 ### `make environment`
 
 Installed:
-- Python 3.11 environment (`.env/` directory)
+- Python environment (`.venv/`, built by uv)
 - Julia packages (`.julia/` directory, if enabled)
 - Git submodules (repro-tools)
 

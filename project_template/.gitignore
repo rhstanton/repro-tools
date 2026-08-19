@@ -2,6 +2,7 @@
 output/
 
 # Environments
+.venv/
 .env/
 .julia/
 .stata/

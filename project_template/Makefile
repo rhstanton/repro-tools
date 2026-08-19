@@ -25,12 +25,23 @@ export JULIA_NUM_THREADS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/de
 
 {runners}
 
-# repro-tools CLI commands
-REPRO_CHECK   := .env/bin/repro-check
-REPRO_PUBLISH := .env/bin/repro-publish
-REPRO_COMPARE := .env/bin/repro-compare
-REPRO_SYSINFO := .env/bin/repro-sysinfo
-REPRO_REPORT  := .env/bin/repro-report
+# repro-tools CLI commands, invoked as a MODULE rather than by console-script
+# path. Two reasons, both learned the hard way:
+#
+#   * `.env/bin/...` was the conda-era layout. Environments are built with uv
+#     now and live in `.venv/`, so those paths named files that do not exist.
+#   * `$(PYTHON) -m` runs the project's OWN interpreter, so it cannot pick up a
+#     repro-tools installed somewhere else on PATH.
+#
+# This mirrors what project_template itself does. Note that the module form
+# requires repro-tools to have a __main__ entry point, which it lacked until
+# 2026-08-18 -- before that, every one of these commands silently did nothing
+# and exited 0.
+REPRO_CHECK   := $(PYTHON) -m repro_tools.cli check
+REPRO_PUBLISH := $(PYTHON) -m repro_tools.cli publish
+REPRO_COMPARE := $(PYTHON) -m repro_tools.cli compare
+REPRO_SYSINFO := $(PYTHON) -m repro_tools.cli sysinfo
+REPRO_REPORT  := $(PYTHON) -m repro_tools.cli report
 
 # ==============================================================================
 # Analysis Definitions
