@@ -7,6 +7,13 @@
 # Split out of common.mk on 2026-08-19. Include this file directly, or get
 # all four by including common.mk.
 
+# ------------------------------------------------------------------ knobs
+#
+# REPORT_OUTPUT is the one path this layer names. Parameterized for the same
+# reason as tools.mk's: a shared target that writes to a directory the consuming
+# project does not have fails in that project, not here.
+REPORT_OUTPUT ?= output/replication_report.html
+
 .PHONY: diff-outputs
 diff-outputs:
 	@echo "Comparing current outputs with published outputs..."
@@ -35,10 +42,10 @@ pre-submit-strict:
 replication-report:
 	@echo "Generating replication report..."
 	@$(REPRO_REPORT) --format html \
-	  --output output/replication_report.html
+	  --output $(REPORT_OUTPUT)
 	@echo ""
-	@echo "Report generated: output/replication_report.html"
-	@echo "Open in browser: file://$(REPO_ROOT)/output/replication_report.html"
+	@echo "Report generated: $(REPORT_OUTPUT)"
+	@echo "Open in browser: file://$(REPO_ROOT)/$(REPORT_OUTPUT)"
 	@echo ""
 
 # Template updates

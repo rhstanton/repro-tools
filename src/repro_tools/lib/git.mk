@@ -7,12 +7,20 @@
 # Split out of common.mk on 2026-08-19. Include this file directly, or get
 # all four by including common.mk.
 
+# ------------------------------------------------------------------ knobs
+#
+# Where repro-tools is vendored. Hardcoding lib/repro-tools made these targets
+# update the wrong path for any project that vendors it elsewhere -- and they
+# would have reported success while doing it, since `git submodule update` on a
+# path that is not a submodule is not an error.
+REPRO_SUBMODULE_PATH ?= lib/repro-tools
+
 # repro-tools Common Makefile
 #
 # Generic targets for reproducible research projects.
 # Include this in your project Makefile:
 #
-#   include lib/repro-tools/lib/common.mk
+#   include lib/repro-tools/src/repro_tools/lib/common.mk
 #
 # Required variables (define before including):
 #   PYTHON       - Path to Python wrapper (e.g., env/scripts/runpython)
@@ -75,22 +83,22 @@ update-submodules:
 	@echo "=========================================="
 	@echo ""
 	@echo "📦 Fetching latest repro-tools from main branch..."
-	@BEFORE=$$(git submodule status lib/repro-tools | awk '{print $$1}'); \
-	git submodule update --remote lib/repro-tools; \
-	AFTER=$$(git submodule status lib/repro-tools | awk '{print $$1}'); \
+	@BEFORE=$$(git submodule status $(REPRO_SUBMODULE_PATH) | awk '{print $$1}'); \
+	git submodule update --remote $(REPRO_SUBMODULE_PATH); \
+	AFTER=$$(git submodule status $(REPRO_SUBMODULE_PATH) | awk '{print $$1}'); \
 	echo ""; \
 	if [ "$$BEFORE" = "$$AFTER" ]; then \
 		echo "✓ Already up to date!"; \
 		echo ""; \
 		echo "Current commit:"; \
-		git submodule status lib/repro-tools; \
+		git submodule status $(REPRO_SUBMODULE_PATH); \
 	else \
 		echo "✓ Submodule updated!"; \
 		echo ""; \
 		echo "Updated from $$BEFORE to $$AFTER"; \
 		echo ""; \
 		echo "To track this update in your project:"; \
-		echo "  git add lib/repro-tools"; \
+		echo "  git add $(REPRO_SUBMODULE_PATH)"; \
 		echo "  git commit -m \"Update repro-tools to latest\""; \
 	fi; \
 	echo ""

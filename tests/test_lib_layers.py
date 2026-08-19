@@ -64,7 +64,9 @@ def test_the_layers_cover_the_documented_target_count():
     total = set()
     for name in LAYERS:
         total |= targets_in(name)
-    assert len(total) == 30, f"expected 30 shared targets, found {len(total)}: {sorted(total)}"
+    assert len(total) == 30, (
+        f"expected 30 shared targets, found {len(total)}: {sorted(total)}"
+    )
 
 
 @pytest.mark.parametrize(
@@ -94,4 +96,57 @@ def test_packaging_ships_every_layer():
     would install as an empty gap -- the exact defect that made lib/ unreachable
     for consumers installing repro-tools as a package."""
     text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text()
-    assert 'lib/*.mk' in text, "package-data does not ship lib/*.mk"
+    assert "lib/*.mk" in text, "package-data does not ship lib/*.mk"
+
+
+# Paths, not just variables. The first version of the contract test looked only
+# for $(DATA)/$(ANALYSES)/$(OUT_*), so tools.mk passed while three of its targets
+# hardcoded the template's own filenames -- `pytest tests/`, `mypy
+# run_analysis.py shared/*.py`. Measured 2026-08-19: the first of those collects
+# 147 tests in fire against the 326 its testpaths select, and prints a tick
+# either way. A contract that only checks for variables misses the commonest way
+# a shared target becomes project-specific.
+HARDCODED = (
+    "tests/",
+    "run_analysis.py",
+    "shared/",
+    "output/",
+    "paper/",
+    "data/",
+    "lib/repro-tools",
+)
+
+
+@pytest.mark.parametrize("layer", ["tools.mk", "repro.mk", "git.mk"])
+def test_a_portable_layer_hardcodes_no_project_path(layer):
+    """Recipe lines only: comments discuss these paths by name, and the header
+    of each file explains exactly which ones it used to contain."""
+    offenders = []
+    for i, line in enumerate((LIB / layer).read_text().split("\n"), 1):
+        if not line.startswith("\t"):
+            continue
+        for frag in HARDCODED:
+            if frag in line:
+                offenders.append(f"{layer}:{i}: {frag!r} in {line.strip()[:60]}")
+    assert not offenders, "hardcoded project paths:\n" + "\n".join(offenders)
+
+
+def test_the_knobs_have_defaults_that_preserve_template_behavior():
+    """Every knob uses ?=, so a project setting it before the include wins and
+    a project that does not is unaffected."""
+    for layer, knobs in (
+        (
+            "tools.mk",
+            [
+                "TEST_PATHS",
+                "COV_TARGET",
+                "LINT_PATHS",
+                "TYPECHECK_PATHS",
+                "RUFF_EXCLUDE",
+            ],
+        ),
+        ("repro.mk", ["REPORT_OUTPUT"]),
+    ):
+        text = (LIB / layer).read_text()
+        for knob in knobs:
+            assert f"{knob} ?=" in text, f"{layer} does not define {knob} with ?="

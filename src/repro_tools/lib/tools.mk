@@ -7,13 +7,36 @@
 # Split out of common.mk on 2026-08-19. Include this file directly, or get
 # all four by including common.mk.
 
+# ------------------------------------------------------------------ knobs
+#
+# These targets are otherwise pure toolchain -- they need $(PYTHON) and nothing
+# about the project. Three of them used to hardcode the template's own paths,
+# which quietly made this file layout-dependent and unusable elsewhere.
+#
+# TEST_PATHS defaults to EMPTY, and that is the important one. It used to be
+# `tests/`. Measured 2026-08-19 against fire, whose testpaths span
+# housing-analysis/tests, peer-effects/tests and tests: `pytest tests/` collects
+# 147 tests where `pytest` collects 326, and prints a tick either way. A shared
+# test target that silently runs 55% of a suite is the precise defect this
+# machinery exists to prevent. Empty defers to the project's own pytest
+# `testpaths`, which is where that decision belongs; verified equivalent for
+# project_template, where the two forms collect the same 407 tests.
+#
+# Override any of these BEFORE including this file (or common.mk).
+TEST_PATHS ?=
+COV_TARGET ?= scripts
+LINT_PATHS ?= .
+TYPECHECK_PATHS ?= run_analysis.py shared/*.py
+RUFF_EXCLUDE ?= lib/repro-tools
+SYSINFO_OUTPUT ?= output/system_info.yml
+
 .PHONY: system-info
 system-info:
 	@echo "Logging computational environment..."
-	@$(REPRO_SYSINFO) --output output/system_info.yml \
+	@$(REPRO_SYSINFO) --output $(SYSINFO_OUTPUT) \
 	  --repo-root $(REPO_ROOT)
 	@echo ""
-	@echo "System information saved to output/system_info.yml"
+	@echo "System information saved to $(SYSINFO_OUTPUT)"
 	@echo "This file contains OS, Python, Julia versions and package lists."
 	@echo ""
 
@@ -27,7 +50,7 @@ system-info:
 .PHONY: test-fast
 test-fast:
 	@echo "Running fast tests (deselecting -m slow)..."
-	@$(PYTHON) -m pytest tests/ -q -m "not slow"
+	@$(PYTHON) -m pytest $(TEST_PATHS) -q -m "not slow"
 	@echo ""
 	@echo "✓ Fast tests complete -- run 'make test' for the full suite"
 	@echo ""
@@ -35,7 +58,7 @@ test-fast:
 .PHONY: test
 test:
 	@echo "Running test suite..."
-	@$(PYTHON) -m pytest tests/ -v
+	@$(PYTHON) -m pytest $(TEST_PATHS) -v
 	@echo ""
 	@echo "✓ Tests complete"
 	@echo ""
@@ -43,7 +66,7 @@ test:
 .PHONY: test-cov
 test-cov:
 	@echo "Running tests with coverage..."
-	@$(PYTHON) -m pytest tests/ --cov=scripts --cov-report=html --cov-report=term
+	@$(PYTHON) -m pytest $(TEST_PATHS) --cov=$(COV_TARGET) --cov-report=html --cov-report=term
 	@echo ""
 	@echo "Coverage report: htmlcov/index.html"
 	@echo ""
@@ -53,10 +76,10 @@ test-cov:
 .PHONY: lint
 lint:
 	@echo "Running linter (ruff)..."
-	@$(PYTHON) -m ruff check . --exclude 'lib/repro-tools' || { \
+	@$(PYTHON) -m ruff check $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)' || { \
 		echo ""; \
 		echo "Linting failed. To see details:"; \
-		echo "  $(PYTHON) -m ruff check ."; \
+		echo "  $(PYTHON) -m ruff check $(LINT_PATHS)"; \
 		echo ""; \
 		echo "To auto-fix some issues:"; \
 		echo "  make format"; \
@@ -68,16 +91,16 @@ lint:
 format:
 	@echo "Auto-formatting code..."
 	@echo "  1. Running ruff fixes (import sorting, trailing whitespace, etc.)..."
-	@$(PYTHON) -m ruff check --fix . --exclude 'lib/repro-tools' || true
+	@$(PYTHON) -m ruff check --fix $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)' || true
 	@echo "  2. Running ruff format..."
-	@$(PYTHON) -m ruff format . --exclude 'lib/repro-tools' || true
+	@$(PYTHON) -m ruff format $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)' || true
 	@echo ""
 	@echo "✓ Formatting complete"
 
 .PHONY: format-check
 format-check:
 	@echo "Checking code formatting..."
-	@$(PYTHON) -m ruff format --check . --exclude 'lib/repro-tools' || { \
+	@$(PYTHON) -m ruff format --check $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)' || { \
 		echo ""; \
 		echo "Ruff formatting check failed. Run:"; \
 		echo "  make format"; \
@@ -89,10 +112,10 @@ format-check:
 .PHONY: type-check
 type-check:
 	@echo "Running type checker (mypy)..."
-	@$(PYTHON) -m mypy run_analysis.py shared/*.py --exclude 'lib/repro-tools' || { \
+	@$(PYTHON) -m mypy $(TYPECHECK_PATHS) --exclude '$(RUFF_EXCLUDE)' || { \
 		echo ""; \
 		echo "Type checking failed. Run for details:"; \
-		echo "  $(PYTHON) -m mypy run_analysis.py shared/*.py"; \
+		echo "  $(PYTHON) -m mypy $(TYPECHECK_PATHS)"; \
 		exit 1; \
 	}
 	@echo "✓ Type checking passed"
@@ -105,7 +128,7 @@ check: lint format-check type-check test
 	@echo "================================================"
 	@echo ""
 	@echo "  ✓ Linting (ruff)"
-	@echo "  ✓ Formatting (black + ruff)"
+	@echo "  ✓ Formatting (ruff)"
 	@echo "  ✓ Type checking (mypy)"
 	@echo "  ✓ Tests (pytest)"
 	@echo ""
