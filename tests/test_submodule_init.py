@@ -33,7 +33,7 @@ from pathlib import Path
 
 import pytest
 
-COMMON_MK = Path(__file__).resolve().parents[1] / "src/repro_tools/lib/common.mk"
+LIB_DIR = Path(__file__).resolve().parents[1] / "src/repro_tools/lib"
 
 OLD_RECIPE = (
     "init-submodules:\n\t@git submodule update --init --recursive 2>/dev/null || true\n"
@@ -41,11 +41,24 @@ OLD_RECIPE = (
 
 
 def _recipe() -> str:
-    """Extract the init-submodules target from common.mk verbatim."""
-    text = COMMON_MK.read_text()
-    m = re.search(r"^init-submodules:\n(?:\t.*\n)+", text, re.MULTILINE)
-    assert m, "init-submodules target not found in common.mk"
-    return m.group(0)
+    """Extract the init-submodules recipe verbatim, wherever it lives.
+
+    Searches every .mk in lib/ rather than naming one file. common.mk was split
+    into layers on 2026-08-19 and init-submodules moved to git.mk, which broke
+    three tests that had hardcoded the filename -- a failure about bookkeeping,
+    not about the recipe under test. What matters here is the recipe's content;
+    which layer file holds it is an implementation detail of the split.
+    """
+    hits = []
+    for mk in sorted(LIB_DIR.glob("*.mk")):
+        m = re.search(r"^init-submodules:\n(?:\t.*\n)+", mk.read_text(), re.MULTILINE)
+        if m:
+            hits.append((mk.name, m.group(0)))
+    assert hits, f"init-submodules target not found in any of {LIB_DIR}/*.mk"
+    assert len(hits) == 1, (
+        f"init-submodules defined more than once: {[n for n, _ in hits]}"
+    )
+    return hits[0][1]
 
 
 def _git(repo: Path, *args: str) -> None:

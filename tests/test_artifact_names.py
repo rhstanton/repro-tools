@@ -72,12 +72,22 @@ def test_a_failing_make_does_not_crash_the_check(tmp_path):
     assert _checker(tmp_path)._artifact_names() == []
 
 
-def test_the_shared_target_exists_in_common_mk():
-    """The contract lives in the shared machinery, so every project inherits it."""
+def test_the_shared_target_exists_in_the_shared_machinery():
+    """The contract lives in the shared machinery, so every project inherits it.
+
+    Searches all of lib/*.mk rather than naming common.mk: the split on
+    2026-08-19 moved this target into layout.mk, and a test that hardcodes a
+    filename fails on a reorganization that changed nothing it was testing.
+    """
     from repro_tools.core import lib_dir
 
-    text = (lib_dir() / "common.mk").read_text()
-    assert "list-analyses-names:" in text
+    defining = [
+        mk.name
+        for mk in sorted(lib_dir().glob("*.mk"))
+        if "list-analyses-names:" in mk.read_text()
+    ]
+    assert defining, "no lib/*.mk defines list-analyses-names"
+    assert len(defining) == 1, f"defined in more than one layer: {defining}"
 
 
 def test_the_target_prints_bare_names_only(tmp_path):

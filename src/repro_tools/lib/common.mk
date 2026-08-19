@@ -2,469 +2,57 @@
 # repro-tools Common Makefile
 # ==============================================================================
 #
-# Generic targets for reproducible research projects.
-# Include this in your project Makefile:
+# Every shared target, in one include:
 #
-#   include lib/repro-tools/lib/common.mk
+#   include lib/repro-tools/src/repro_tools/lib/common.mk
 #
-# Required variables (define before including):
-#   PYTHON       - Path to Python wrapper (e.g., env/scripts/runpython)
-#   JULIA        - Path to Julia wrapper (e.g., env/scripts/runjulia)
-#   STATA        - Path to Stata wrapper (e.g., env/scripts/runstata)
-#   REPRO_CHECK  - repro-tools CLI check command
-#   REPRO_SYSINFO - repro-tools CLI sysinfo command
-#   REPRO_COMPARE - repro-tools CLI compare command
-#   REPRO_REPORT  - repro-tools CLI report command
-#   OUT_LOG_DIR  - Output directory for logs
-#   REPO_ROOT    - Repository root path
-#   DATA         - Input data files (for verify target)
+# This file is now a thin aggregator over four layers, split 2026-08-19. It
+# behaves exactly as it did before -- including it still gets all 30 targets --
+# so no existing consumer needs to change.
 #
-# ==============================================================================
-
-# Ensure submodules are initialized.
+# WHY THE SPLIT
 #
-# The previous version was `git submodule update --init --recursive 2>/dev/null
-# || true`, which discarded stderr AND the exit status, so an unreachable URL, a
-# missing git, or a failed clone were all indistinguishable from success. The
-# build then continued against submodules that were not there, and the real
-# failure surfaced later as a missing module -- somewhere that gave no hint the
-# cause was here.
+# `include` is all-or-nothing, and 12 of the 30 targets assume the template's
+# PROJECT SHAPE rather than its toolchain: $(DATA) as one input file, $(ANALYSES)
+# as a flat list at the root, $(OUT_*) directories, an env/ sub-Makefile. A
+# project shaped differently could therefore adopt none of the other 18.
 #
-# The message lists causes in order of likelihood, and that order was corrected
-# 2026-08-19 after it misled a debugging session for twenty minutes: a copied
-# working tree left lib/repro-tools non-empty, git said "destination path already
-# exists and is not an empty directory", and the advice to "check network access
-# and whether any are private" sent the reader to test credentials that were
-# fine. An error message that offers one hypothesis is read as a diagnosis.
+# That was not theoretical. fire has 114 GB of inputs across many files and
+# declares its 43 analyses in a sub-Makefile; measured 2026-08-19, it collided on
+# 18 of these 30 target names, so it had hand-copied the generic ones instead --
+# and every fix made here reached project_template and never reached fire.
 #
-# "Nothing to initialize" and "initialization failed" are different, and only
-# the first is fine. A project exported with `git archive` has no .git and no
-# submodules to fetch; that is normal and silent. A checkout that declares
-# submodules and cannot fetch them is broken, and says so.
-.PHONY: init-submodules
-init-submodules:
-	@if [ ! -e .gitmodules ]; then \
-	  : ; \
-	elif ! git rev-parse --git-dir >/dev/null 2>&1; then \
-	  echo "Not a git checkout (an export?) -- skipping submodule init."; \
-	elif ! git submodule update --init --recursive; then \
-	  echo "" >&2; \
-	  echo "ERROR: git submodule update failed." >&2; \
-	  echo "  .gitmodules declares submodules that could not be checked out." >&2; \
-	  echo "  Read the git output ABOVE this message -- it names the cause." >&2; \
-	  echo "  Most likely, in order:" >&2; \
-	  echo "    - the submodule path already exists and is not empty" >&2; \
-	  echo "      (a working tree copied over a clone); remove it and retry" >&2; \
-	  echo "    - no credentials for a private submodule" >&2; \
-	  echo "    - no network access" >&2; \
-	  exit 1; \
-	fi
-
-# ==============================================================================
-# Artifact list (machine-readable)
-# ==============================================================================
-
-# Bare artifact names, one per line, nothing else -- no header, no bullets.
+# THE LAYERS, by what each requires
 #
-# `repro-tools check` needs to know what a project is supposed to have built.
-# It used to regex the root Makefile for a line starting `ANALYSES`, which fails
-# on any project whose list is assembled rather than literal: fire builds its
-# ANALYSES from $(REMODEL_ANALYSES) $(MORTGAGE_ANALYSES) ..., in a sub-Makefile,
-# so the regex returned the variable references as text and the check reported
-# "Could not determine artifact list" -- a check that silently stopped checking.
+#   tools.mk   $(PYTHON) only ......... lint, format, format-check, type-check,
+#                                       check, test, test-fast, test-cov,
+#                                       system-info, dryrun
+#   repro.mk   + the repro_tools pkg .. pre-submit, pre-submit-strict,
+#                                       diff-outputs, replication-report,
+#                                       template-diff
+#   git.mk     git only ............... init-submodules, update-submodules,
+#                                       update-environment
+#   layout.mk  the project shape ...... environment, verify, test-outputs,
+#                                       check-deps, clean, cleanall, examples,
+#                                       sample-*, list-analyses-names
 #
-# make already knows. Asking it costs one process and works for any expansion.
+# A project whose shape differs includes the first three and keeps its own
+# equivalents of the fourth.
 #
-# This is deliberately NOT `list-analyses`, which exists in both projects and is
-# formatted for a human ("Available analyses:" then "  - name"). Parsing a
-# display format couples a checker to how something looks; a project is free to
-# make list-analyses prettier without breaking the contract.
+# Required variables, by layer:
+#   PYTHON       tools.mk, repro.mk, layout.mk   (e.g. env/scripts/runpython)
+#   JULIA        layout.mk                        (e.g. env/scripts/runjulia)
+#   STATA        layout.mk                        (e.g. env/scripts/runstata)
+#   DATA         layout.mk                        the input data file
+#   ANALYSES     layout.mk                        the artifact names
+#   OUT_*_DIR    layout.mk                        output directories
 #
-# A project that assembles its list elsewhere overrides this target -- see fire,
-# which delegates to its sub-Makefiles.
-.PHONY: list-analyses-names
-list-analyses-names:
-	@$(foreach a,$(ANALYSES),echo $(a);)
+# Resolved relative to THIS file, so the layers are found wherever repro-tools is
+# checked out -- a submodule path, an installed package, anywhere. Hardcoding
+# lib/repro-tools/... would break every consumer that vendors it elsewhere.
+REPRO_LIB_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-# ==============================================================================
-# Environment Setup
-# ==============================================================================
-
-.PHONY: environment
-environment: init-submodules
-	@echo ""
-	@echo "=========================================="
-	@echo "Setting up software environment..."
-	@echo "=========================================="
-	@echo ""
-	@echo "📦 Initializing git submodules..."
-	@git submodule update --init --recursive 2>/dev/null || echo "  ⚠️  Warning: git submodule update failed (not critical if already initialized)"
-	@echo ""
-	@$(MAKE) -C env all-env
-	@echo ""
-	@echo "✓ Environment ready!"
-	@echo ""
-	@echo "Next: make all (to run all analyses)"
-	@echo ""
-
-# ==============================================================================
-# Example Scripts
-# ==============================================================================
-
-.PHONY: sample-python sample-julia sample-juliacall sample-stata examples
-
-sample-python: | $(OUT_LOG_DIR)
-	@echo "Running Python example..."
-	$(PYTHON) env/examples/sample_python.py 2>&1 | tee $(OUT_LOG_DIR)/sample_python.log
-
-sample-julia: | $(OUT_LOG_DIR)
-	@echo "Running Julia example..."
-	$(JULIA) env/examples/sample_julia.jl 2>&1 | tee $(OUT_LOG_DIR)/sample_julia.log
-
-sample-juliacall: | $(OUT_LOG_DIR)
-	@echo "Running Python/Julia interop example (juliacall)..."
-	$(PYTHON) env/examples/sample_juliacall.py 2>&1 | tee $(OUT_LOG_DIR)/sample_juliacall.log
-
-sample-stata: | $(OUT_LOG_DIR)
-	@echo "Running Stata example..."
-	$(STATA) env/examples/sample_stata.do 2>&1 | tee $(OUT_LOG_DIR)/sample_stata.log
-
-examples: sample-python
-	@if [ -f env/examples/sample_julia.jl ] && [ -x env/scripts/runjulia ]; then \
-		echo ""; \
-		$(MAKE) sample-julia; \
-	fi
-	@if [ -f env/examples/sample_juliacall.py ]; then \
-		echo ""; \
-		$(MAKE) sample-juliacall; \
-	fi
-	@if [ -f env/examples/sample_stata.do ] && [ -x env/scripts/runstata ]; then \
-		echo ""; \
-		$(MAKE) sample-stata; \
-		echo "✓ All examples complete"; \
-	else \
-		echo "✓ All examples complete"; \
-	fi
-
-# ==============================================================================
-# Cleanup Targets
-# ==============================================================================
-
-.PHONY: clean
-clean:
-	rm -rf output/figures output/tables output/provenance output/logs .publish_stamps
-	@rm -f .publish_marker .make_build_marker
-
-.PHONY: cleanall
-cleanall: clean
-	@rm -rf .venv .julia .stata
-
-# ==============================================================================
-# Verification & Testing
-# ==============================================================================
-
-.PHONY: verify
-verify:
-	@echo ""
-	@echo "========================================"
-	@echo "  Quick Verification (~1 minute)"
-	@echo "========================================"
-	@echo ""
-	@echo "1. Checking Python environment..."
-	@if [ -f .venv/bin/python ]; then \
-		$(PYTHON) --version | sed 's/^/   /' && echo "   ✓"; \
-	else \
-		echo "   ✗ Python environment not found"; \
-		echo "   Run: make environment"; \
-		exit 1; \
-	fi
-	@echo ""
-	@echo "2. Checking key packages..."
-	@$(PYTHON) -c "import pandas; print('   pandas', pandas.__version__, '✓')" || echo "   ✗ pandas missing"
-	@$(PYTHON) -c "import matplotlib; print('   matplotlib', matplotlib.__version__, '✓')" || echo "   ✗ matplotlib missing"
-	@$(PYTHON) -c "import yaml; print('   pyyaml ✓')" || echo "   ✗ pyyaml missing"
-	@$(PYTHON) -c "import juliacall; print('   juliacall ✓')" || echo "   ✗ juliacall missing"
-	@echo ""
-	@echo "3. Checking data availability..."
-	@if [ -f $(DATA) ]; then \
-		echo "   $(DATA) ✓"; \
-		sha256sum $(DATA) | awk '{print "   SHA256: " substr($$1,1,16) "... ✓"}'; \
-	else \
-		echo "   ✗ Data file not found: $(DATA)"; \
-		exit 1; \
-	fi
-	@echo ""
-	@echo "========================================"
-	@echo "  ✓ Verification Complete"
-	@echo "========================================"
-	@echo ""
-	@echo "Environment is ready. Next steps:"
-	@echo "  make all              # Run all analyses"
-	@echo "  make system-info      # Log computational environment"
-	@echo ""
-
-.PHONY: system-info
-system-info:
-	@echo "Logging computational environment..."
-	@$(REPRO_SYSINFO) --output output/system_info.yml \
-	  --repo-root $(REPO_ROOT)
-	@echo ""
-	@echo "System information saved to output/system_info.yml"
-	@echo "This file contains OS, Python, Julia versions and package lists."
-	@echo ""
-
-# The iteration loop. `make test` runs everything and takes minutes, because a
-# handful of tests launch a full analysis as a subprocess and pay Julia's
-# startup each time -- in project_template, five such tests were 355 of the
-# suite's 400 seconds while the other 362 took 45.
-#
-# A suite that takes seven minutes does not get run between edits; one that
-# takes one does. CI runs `test`, so nothing is skipped where it matters.
-.PHONY: test-fast
-test-fast:
-	@echo "Running fast tests (deselecting -m slow)..."
-	@$(PYTHON) -m pytest tests/ -q -m "not slow"
-	@echo ""
-	@echo "✓ Fast tests complete -- run 'make test' for the full suite"
-	@echo ""
-
-.PHONY: test
-test:
-	@echo "Running test suite..."
-	@$(PYTHON) -m pytest tests/ -v
-	@echo ""
-	@echo "✓ Tests complete"
-	@echo ""
-
-.PHONY: test-cov
-test-cov:
-	@echo "Running tests with coverage..."
-	@$(PYTHON) -m pytest tests/ --cov=scripts --cov-report=html --cov-report=term
-	@echo ""
-	@echo "Coverage report: htmlcov/index.html"
-	@echo ""
-
-.PHONY: diff-outputs
-diff-outputs:
-	@echo "Comparing current outputs with published outputs..."
-	@$(REPRO_COMPARE) --reference paper \
-	  --current-dir output
-	@echo ""
-
-# `repro-check` IS the pre-submission checklist -- there is no --pre-submit
-# flag and never was. These targets passed one until 2026-08-17, which went
-# unnoticed because `$(PYTHON) -m repro_tools.cli check` had no module entry
-# point and so ignored every argument and exited 0. Fixing the entry point is
-# what made the wrong flags visible.
-.PHONY: pre-submit
-pre-submit:
-	@echo "Running pre-submission checklist..."
-	@$(REPRO_CHECK)
-	@echo ""
-
-.PHONY: pre-submit-strict
-pre-submit-strict:
-	@echo "Running pre-submission checklist (strict mode)..."
-	@$(REPRO_CHECK) --strict
-	@echo ""
-
-.PHONY: replication-report
-replication-report:
-	@echo "Generating replication report..."
-	@$(REPRO_REPORT) --format html \
-	  --output output/replication_report.html
-	@echo ""
-	@echo "Report generated: output/replication_report.html"
-	@echo "Open in browser: file://$(REPO_ROOT)/output/replication_report.html"
-	@echo ""
-
-.PHONY: test-outputs
-test-outputs:
-	@echo "Verifying all expected outputs exist..."
-	@echo ""
-	@echo "Expected figures:"
-	@for analysis in $(ANALYSES); do \
-		fig="output/figures/$$analysis.pdf"; \
-		if [ -f "$$fig" ]; then \
-			size=$$(stat -f%z "$$fig" 2>/dev/null || stat -c%s "$$fig" 2>/dev/null); \
-			size_kb=$$(( size / 1024 )); \
-			echo "  ✓ $$fig ($${size_kb} KB)"; \
-		else \
-			echo "  ✗ $$fig (missing)"; \
-		fi; \
-	done
-	@echo ""
-	@echo "Expected tables:"
-	@for analysis in $(ANALYSES); do \
-		tbl="output/tables/$$analysis.tex"; \
-		if [ -f "$$tbl" ]; then \
-			size=$$(stat -f%z "$$tbl" 2>/dev/null || stat -c%s "$$tbl" 2>/dev/null); \
-			echo "  ✓ $$tbl ($$size bytes)"; \
-		else \
-			echo "  ✗ $$tbl (missing)"; \
-		fi; \
-	done
-	@echo ""
-	@echo "Expected provenance:"
-	@for analysis in $(ANALYSES); do \
-		prov="output/provenance/$$analysis.yml"; \
-		if [ -f "$$prov" ]; then \
-			echo "  ✓ $$prov"; \
-		else \
-			echo "  ✗ $$prov (missing)"; \
-		fi; \
-	done
-	@echo ""
-
-# ==============================================================================
-# Code Quality
-# ==============================================================================
-
-.PHONY: lint
-lint:
-	@echo "Running linter (ruff)..."
-	@$(PYTHON) -m ruff check . --exclude 'lib/repro-tools' || { \
-		echo ""; \
-		echo "Linting failed. To see details:"; \
-		echo "  $(PYTHON) -m ruff check ."; \
-		echo ""; \
-		echo "To auto-fix some issues:"; \
-		echo "  make format"; \
-		exit 1; \
-	}
-	@echo "✓ Linting passed"
-
-.PHONY: format
-format:
-	@echo "Auto-formatting code..."
-	@echo "  1. Running ruff fixes (import sorting, trailing whitespace, etc.)..."
-	@$(PYTHON) -m ruff check --fix . --exclude 'lib/repro-tools' || true
-	@echo "  2. Running ruff format..."
-	@$(PYTHON) -m ruff format . --exclude 'lib/repro-tools' || true
-	@echo ""
-	@echo "✓ Formatting complete"
-
-.PHONY: format-check
-format-check:
-	@echo "Checking code formatting..."
-	@$(PYTHON) -m ruff format --check . --exclude 'lib/repro-tools' || { \
-		echo ""; \
-		echo "Ruff formatting check failed. Run:"; \
-		echo "  make format"; \
-		exit 1; \
-	}
-	@echo ""
-	@echo "✓ Formatting check passed"
-
-.PHONY: type-check
-type-check:
-	@echo "Running type checker (mypy)..."
-	@$(PYTHON) -m mypy run_analysis.py shared/*.py --exclude 'lib/repro-tools' || { \
-		echo ""; \
-		echo "Type checking failed. Run for details:"; \
-		echo "  $(PYTHON) -m mypy run_analysis.py shared/*.py"; \
-		exit 1; \
-	}
-	@echo "✓ Type checking passed"
-
-.PHONY: check
-check: lint format-check type-check test
-	@echo ""
-	@echo "================================================"
-	@echo "  ✓ All quality checks passed!"
-	@echo "================================================"
-	@echo ""
-	@echo "  ✓ Linting (ruff)"
-	@echo "  ✓ Formatting (black + ruff)"
-	@echo "  ✓ Type checking (mypy)"
-	@echo "  ✓ Tests (pytest)"
-	@echo ""
-
-# ==============================================================================
-# Utility Commands
-# ==============================================================================
-
-.PHONY: update-submodules
-update-submodules:
-	@echo "=========================================="
-	@echo "Updating git submodules to latest..."
-	@echo "=========================================="
-	@echo ""
-	@echo "📦 Fetching latest repro-tools from main branch..."
-	@BEFORE=$$(git submodule status lib/repro-tools | awk '{print $$1}'); \
-	git submodule update --remote lib/repro-tools; \
-	AFTER=$$(git submodule status lib/repro-tools | awk '{print $$1}'); \
-	echo ""; \
-	if [ "$$BEFORE" = "$$AFTER" ]; then \
-		echo "✓ Already up to date!"; \
-		echo ""; \
-		echo "Current commit:"; \
-		git submodule status lib/repro-tools; \
-	else \
-		echo "✓ Submodule updated!"; \
-		echo ""; \
-		echo "Updated from $$BEFORE to $$AFTER"; \
-		echo ""; \
-		echo "To track this update in your project:"; \
-		echo "  git add lib/repro-tools"; \
-		echo "  git commit -m \"Update repro-tools to latest\""; \
-	fi; \
-	echo ""
-
-.PHONY: update-environment
-update-environment: update-submodules
-	@echo "=========================================="
-	@echo "Reinstalling environment with updates..."
-	@echo "=========================================="
-	@echo ""
-	@echo "📦 Reinstalling Python environment with updated repro-tools..."
-	$(MAKE) -C env python-env
-	@echo ""
-	@echo "📦 Reinstalling Julia packages..."
-	$(MAKE) -C env julia-install-via-python
-	@echo ""
-	@echo "✓ Environment updated!"
-	@echo ""
-
-.PHONY: check-deps
-check-deps:
-	@echo "Checking dependencies..."
-	@echo -n "  Python: "
-	@$(PYTHON) --version 2>&1 || echo "❌ ERROR: Python not available (run: make environment)"
-	@echo -n "  Julia:  "
-	@$(JULIA) --version 2>&1 | xargs echo || echo "❌ ERROR: Julia not available (run: make environment)"
-	@echo -n "  Data files: "
-	@if [ -f $(DATA) ]; then \
-		echo "✓ $(DATA)"; \
-	else \
-		echo "❌ ERROR: Data file not found: $(DATA)"; \
-	fi
-	@echo ""
-	@echo "Julia thread count: $(JULIA_NUM_THREADS)"
-	@echo ""
-
-.PHONY: dryrun
-dryrun:
-	@echo "Dry run - showing what would be built:"
-	@echo ""
-	@$(MAKE) -n all 2>&1 | grep -E '^(Building|Running|======|✓)' || true
-
-# ==============================================================================
-# Template updates
-# ==============================================================================
-
-# Show which project_template changes have not been applied here yet, split by
-# whether this project has customized the file. Prints only -- it never writes.
-#
-# An auto-applying version would be the dangerous one: template changes routinely
-# collide with the project-specific decisions that make a project a project, and
-# resolving that silently is how an analysis acquires an edit nobody reviewed.
-#
-# Needs template-origin.toml (written by bootstrap.py at creation); without a
-# record of which template version this project came from there is no baseline
-# and the question cannot be answered.
-.PHONY: template-diff
-template-diff:
-	@$(PYTHON) -m repro_tools.template_update $(ARGS)
-
-# End of common.mk
+include $(REPRO_LIB_DIR)tools.mk
+include $(REPRO_LIB_DIR)repro.mk
+include $(REPRO_LIB_DIR)git.mk
+include $(REPRO_LIB_DIR)layout.mk

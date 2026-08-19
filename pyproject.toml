@@ -146,14 +146,18 @@ exclude = [
     ".pytest_cache",
     ".mypy_cache",
     ".ruff_cache",
-    # Ruff 0.16 formats fenced code blocks inside Markdown. That is actively
-    # wrong here: project_template/README.md documents scaffolding through
-    # `str.format()`, where `{{` is an escaped literal brace. Ruff reads `{{` as
-    # a nested dict and "fixes" it into code that does not work -- turning
+    # Ruff 0.16 formats fenced code blocks inside Markdown, and documentation is
+    # prose ABOUT code, not code. Measured 2026-08-17 on a README that documented
+    # scaffolding through `str.format()`, where `{{` is an escaped literal brace:
+    # ruff read `{{` as a nested dict and "fixed" it into code that does not run,
+    # turning
     #     STUDIES = {{ "my_analysis": {{ ... }}, }}
-    # into a set containing a dict. Documentation is prose about code, not code,
-    # and this repo runs ruff as a Python tool. Verified 2026-08-17: without
-    # this, `make format-check` fails on that README indefinitely.
+    # into a set containing a dict, and `make format-check` then failed forever.
+    #
+    # That particular file lived in this repo's own project_template/ copy, which
+    # was deleted 2026-08-19 as a dead duplicate of the real template repo. The
+    # exclusion stays: the hazard is Markdown-formatting in general, not that one
+    # file, and this repo runs ruff as a Python tool.
     "*.md",
 ]
 
