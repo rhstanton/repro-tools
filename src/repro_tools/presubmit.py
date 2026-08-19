@@ -195,13 +195,25 @@ class PreSubmitChecker:
         """Check environment is set up."""
         print("🔧 Checking Environment...")
 
-        python_env = self.repo_root / ".env" / "bin" / "python"
-        if python_env.exists():
+        # .venv first, .env second. The conda-era `.env` was the ONLY path
+        # checked until 2026-08-19, so this reported "Python environment not
+        # found" for every uv project -- which is all of them since the
+        # migration. It went unnoticed because one repository still had a stale
+        # 2.4 GB conda .env/ from February sitting in its working copy, so the
+        # check passed there and nowhere else. Deleting that directory is what
+        # exposed it.
+        candidates = [
+            self.repo_root / ".venv" / "bin" / "python",
+            self.repo_root / ".env" / "bin" / "python",
+        ]
+        found = next((c for c in candidates if c.exists()), None)
+        if found:
+            where = found.relative_to(self.repo_root)
             self.results.append(
                 CheckResult(
                     "Python Environment",
                     True,
-                    "Python environment exists",
+                    f"Python environment exists ({where})",
                 )
             )
         else:
@@ -210,6 +222,7 @@ class PreSubmitChecker:
                     "Python Environment",
                     False,
                     "Python environment not found",
+                    "Looked for .venv/bin/python and .env/bin/python. "
                     "Run: make environment",
                 )
             )
