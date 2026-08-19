@@ -340,6 +340,51 @@ class PreSubmitChecker:
                 )
             )
 
+    def _artifact_names(self) -> list:
+        """The artifact names this project is supposed to have built.
+
+        Asks make first: `make -s list-analyses-names` prints bare names, one
+        per line. That target lives in repro-tools' common.mk, so any project
+        including it has the contract for free, and a project whose list is
+        assembled elsewhere overrides the target rather than changing this code.
+
+        The fallback -- regexing the root Makefile for a line starting ANALYSES
+        or ARTIFACTS -- is kept only for projects that do not include common.mk.
+        It cannot work in general, and the failure is silent: fire assembles
+        ANALYSES from $(REMODEL_ANALYSES) $(MORTGAGE_ANALYSES) ... inside
+        housing-analysis/Makefile, so the regex found either nothing or the
+        variable references as literal text, and the check downgraded itself to
+        "Could not determine artifact list" instead of failing. Measured
+        2026-08-19: make expands that list to 43 names, the regex to none.
+        """
+        try:
+            result = subprocess.run(
+                ["make", "-s", "--no-print-directory", "list-analyses-names"],
+                cwd=self.repo_root,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if result.returncode == 0:
+                names = [ln.strip() for ln in result.stdout.splitlines() if ln.strip()]
+                if names:
+                    return names
+        except (OSError, subprocess.SubprocessError):
+            pass  # no make, or it failed -- fall back below
+
+        makefile = self.repo_root / "Makefile"
+        if makefile.exists():
+            with open(makefile) as f:
+                for line in f:
+                    if line.startswith("ANALYSES") or line.startswith("ARTIFACTS"):
+                        # Only literal names; a $(VAR) reference is not one.
+                        return [
+                            tok
+                            for tok in line.split("=", 1)[1].strip().split()
+                            if "$" not in tok
+                        ]
+        return []
+
     def check_artifacts_built(self):
         """Check all artifacts have been built."""
         print("🔨 Checking Artifacts...")
@@ -356,17 +401,7 @@ class PreSubmitChecker:
             )
             return
 
-        # Read Makefile to get artifact list
-        makefile = self.repo_root / "Makefile"
-        artifacts = []
-
-        if makefile.exists():
-            with open(makefile) as f:
-                for line in f:
-                    # Look for ANALYSES or ARTIFACTS (backward compatibility)
-                    if line.startswith("ANALYSES") or line.startswith("ARTIFACTS"):
-                        artifacts = line.split("=", 1)[1].strip().split()
-                        break
+        artifacts = self._artifact_names()
 
         if not artifacts:
             self.results.append(

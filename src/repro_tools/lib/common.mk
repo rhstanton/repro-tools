@@ -61,6 +61,32 @@ init-submodules:
 	fi
 
 # ==============================================================================
+# Artifact list (machine-readable)
+# ==============================================================================
+
+# Bare artifact names, one per line, nothing else -- no header, no bullets.
+#
+# `repro-tools check` needs to know what a project is supposed to have built.
+# It used to regex the root Makefile for a line starting `ANALYSES`, which fails
+# on any project whose list is assembled rather than literal: fire builds its
+# ANALYSES from $(REMODEL_ANALYSES) $(MORTGAGE_ANALYSES) ..., in a sub-Makefile,
+# so the regex returned the variable references as text and the check reported
+# "Could not determine artifact list" -- a check that silently stopped checking.
+#
+# make already knows. Asking it costs one process and works for any expansion.
+#
+# This is deliberately NOT `list-analyses`, which exists in both projects and is
+# formatted for a human ("Available analyses:" then "  - name"). Parsing a
+# display format couples a checker to how something looks; a project is free to
+# make list-analyses prettier without breaking the contract.
+#
+# A project that assembles its list elsewhere overrides this target -- see fire,
+# which delegates to its sub-Makefiles.
+.PHONY: list-analyses-names
+list-analyses-names:
+	@$(foreach a,$(ANALYSES),echo $(a);)
+
+# ==============================================================================
 # Environment Setup
 # ==============================================================================
 
