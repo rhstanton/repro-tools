@@ -30,6 +30,13 @@
 # failure surfaced later as a missing module -- somewhere that gave no hint the
 # cause was here.
 #
+# The message lists causes in order of likelihood, and that order was corrected
+# 2026-08-19 after it misled a debugging session for twenty minutes: a copied
+# working tree left lib/repro-tools non-empty, git said "destination path already
+# exists and is not an empty directory", and the advice to "check network access
+# and whether any are private" sent the reader to test credentials that were
+# fine. An error message that offers one hypothesis is read as a diagnosis.
+#
 # "Nothing to initialize" and "initialization failed" are different, and only
 # the first is fine. A project exported with `git archive` has no .git and no
 # submodules to fetch; that is normal and silent. A checkout that declares
@@ -43,8 +50,13 @@ init-submodules:
 	elif ! git submodule update --init --recursive; then \
 	  echo "" >&2; \
 	  echo "ERROR: git submodule update failed." >&2; \
-	  echo "  .gitmodules declares submodules that could not be fetched." >&2; \
-	  echo "  Check network access and whether any are private." >&2; \
+	  echo "  .gitmodules declares submodules that could not be checked out." >&2; \
+	  echo "  Read the git output ABOVE this message -- it names the cause." >&2; \
+	  echo "  Most likely, in order:" >&2; \
+	  echo "    - the submodule path already exists and is not empty" >&2; \
+	  echo "      (a working tree copied over a clone); remove it and retry" >&2; \
+	  echo "    - no credentials for a private submodule" >&2; \
+	  echo "    - no network access" >&2; \
 	  exit 1; \
 	fi
 
