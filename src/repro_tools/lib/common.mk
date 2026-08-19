@@ -175,6 +175,21 @@ system-info:
 	@echo "This file contains OS, Python, Julia versions and package lists."
 	@echo ""
 
+# The iteration loop. `make test` runs everything and takes minutes, because a
+# handful of tests launch a full analysis as a subprocess and pay Julia's
+# startup each time -- in project_template, five such tests were 355 of the
+# suite's 400 seconds while the other 362 took 45.
+#
+# A suite that takes seven minutes does not get run between edits; one that
+# takes one does. CI runs `test`, so nothing is skipped where it matters.
+.PHONY: test-fast
+test-fast:
+	@echo "Running fast tests (deselecting -m slow)..."
+	@$(PYTHON) -m pytest tests/ -q -m "not slow"
+	@echo ""
+	@echo "✓ Fast tests complete -- run 'make test' for the full suite"
+	@echo ""
+
 .PHONY: test
 test:
 	@echo "Running test suite..."
