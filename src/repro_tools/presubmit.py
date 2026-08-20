@@ -291,6 +291,26 @@ class PreSubmitChecker:
                 line.strip() for line in f if line.strip() and not line.startswith("#")
             ]
 
+        # An EMPTY checksums file must fail, not pass.
+        #
+        # With no entries the loop below never runs, `missing` and `altered` stay
+        # empty, and the check reports success -- having verified nothing. That
+        # is not hypothetical: on 2026-08-20 a shell redirection created a
+        # zero-byte data/CHECKSUMS.txt before the command writing it was
+        # interrupted, and the file that remained would have turned this check
+        # green while pinning no data at all. A file whose presence is the whole
+        # signal must be checked for content.
+        if not lines:
+            self.results.append(
+                CheckResult(
+                    "Data Checksums",
+                    False,
+                    f"{checksums_file.name} exists but lists no files",
+                    "Regenerate it; an empty checksums file pins nothing",
+                )
+            )
+            return
+
         # Missing and altered are different failures with different fixes, and
         # both used to collapse into one boolean whose whole report was "Some
         # data files don't match checksums / Check data/CHECKSUMS.txt". That
