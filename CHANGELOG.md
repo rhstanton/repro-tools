@@ -27,12 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Example files generated based on selected languages
   - Environment setup targets properly sequenced
 
-## [0.3.0] - 2026-08-19
+## [0.4.0] - 2026-08-19
 
-Eighty-seven commits since 0.2.0 (January), during which the declared version
-never moved. Consumers pin by submodule commit, so nothing broke — but a package
-claiming 0.2.0 while shipping substantially different behavior is a false
-statement that costs nothing to make and something to believe.
+**0.4.0, not 0.3.x, because v0.3.0 through v0.3.3 already exist as tags** — cut
+2026-01-28, none of which updated `pyproject.toml` or this file. So the repository
+had four releases that `pip show` reported as 0.2.0, and a CHANGELOG that jumps
+from 0.2.0 straight to here. This entry covers everything since 0.2.0, tagged
+releases included, and 0.4.0 is the first version past all of them.
+
+The lesson is the same one this package keeps finding, in a new place: a release
+process with two records of the version and no check that they agree will drift,
+and the drift is invisible because tagging succeeds either way. `scripts/` has no
+bump helper here; adding one, or a test that the tag and pyproject agree, is the
+fix that prevents a fifth instance.
 
 ### Added
 - `lib/` is split by contract into `tools.mk` ($(PYTHON) only), `repro.mk`
@@ -94,7 +101,7 @@ statement that costs nothing to make and something to believe.
 - Initial publishing workflows
 - Core git state tracking
 
-[Unreleased]: https://github.com/rhstanton/repro-tools/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/rhstanton/repro-tools/releases/tag/v0.3.0
+[Unreleased]: https://github.com/rhstanton/repro-tools/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/rhstanton/repro-tools/releases/tag/v0.4.0
 [0.2.0]: https://github.com/rhstanton/repro-tools/releases/tag/v0.2.0
 [0.1.0]: https://github.com/rhstanton/repro-tools/releases/tag/v0.1.0

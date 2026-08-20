@@ -150,3 +150,41 @@ def test_the_knobs_have_defaults_that_preserve_template_behavior():
         text = (LIB / layer).read_text()
         for knob in knobs:
             assert f"{knob} ?=" in text, f"{layer} does not define {knob} with ?="
+
+
+def test_the_declared_version_is_ahead_of_every_release_tag():
+    """pyproject.toml and the git tags must not disagree about the version.
+
+    Found 2026-08-19: v0.3.0, v0.3.1, v0.3.2 and v0.3.3 were all tagged on
+    2026-01-28, and not one of them updated pyproject.toml, which sat at 0.2.0
+    throughout. So four releases reported themselves as 0.2.0, the CHANGELOG
+    skipped them entirely, and a consumer that recorded "0.3.3" looked wrong
+    when it was in fact the only thing telling the truth.
+
+    Tagging succeeds whether or not the declared version was bumped, so nothing
+    ever surfaced it. This test is the missing check.
+    """
+    import re
+    import subprocess
+
+    root = Path(__file__).resolve().parents[1]
+    m = re.search(r'^version = "([^"]+)"', (root / "pyproject.toml").read_text(), re.M)
+    assert m, "pyproject.toml declares no version"
+    declared = tuple(int(x) for x in m.group(1).split("."))
+
+    out = subprocess.run(
+        ["git", "tag"], cwd=root, capture_output=True, text=True, timeout=60
+    )
+    if out.returncode != 0:
+        pytest.skip("not a git checkout")
+    tags = []
+    for t in out.stdout.split():
+        tm = re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", t)
+        if tm:
+            tags.append(tuple(int(x) for x in tm.groups()))
+    if not tags:
+        pytest.skip("no release tags yet")
+    assert declared > max(tags), (
+        f"pyproject declares {m.group(1)} but v{'.'.join(map(str, max(tags)))} is "
+        "already tagged; the next release would collide with an existing tag"
+    )
