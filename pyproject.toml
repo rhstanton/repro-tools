@@ -29,11 +29,20 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+# Pinned exactly, and this is the only place the versions appear.
+#
+# CI used to `pip install 'ruff==0.16.3' mypy ...` in its own step, while a local
+# `uv run ruff` resolved 0.14.2 from `ruff>=0.6` here. Two different linters, two
+# different rule sets, two verdicts on the same code -- and the local one is the
+# one you consult before pushing. A pinned tool in CI and a floating one locally
+# is not a pin; it is a guarantee that they disagree.
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "ruff>=0.6",
+    "ruff==0.16.3",
     "mypy>=1.0",
+    "types-PyYAML",
+    "types-docopt",
 ]
 
 [project.scripts]

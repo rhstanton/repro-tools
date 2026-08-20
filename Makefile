@@ -1,17 +1,32 @@
 # Simple Makefile for repro-tools development
 
-ENV_DIR := .env
-CONDA := conda
-
-# Detect if we're in CI (no conda) or local dev (with conda)
-ifeq ($(CI),true)
-	# CI mode: use direct commands (packages installed via pip)
-	PYTHON := python
+# How every target invokes Python. Detected, not assumed.
+#
+# This used to branch on $(CI): plain commands in CI, `conda run --prefix .env`
+# locally. Both halves were wrong after the move to uv. There is no .env here --
+# there is a .venv -- so every local `make test`, `make lint` and `make check`
+# died with "EnvironmentLocationNotFound: Not a conda environment", and the way
+# people carried on working was to type the underlying ruff and pytest commands
+# by hand, with their own path lists.
+#
+# That is how CI stayed red for a day while local runs passed: the two were never
+# running the same thing. `make lint` failing to START is a worse failure than
+# `make lint` reporting an error, because it trains everyone to bypass it.
+#
+# Detect the interpreter instead. A .venv is used when present; otherwise the
+# tools are expected on PATH, which is what CI does after pip-installing them.
+# `uv run` when uv is available, because it guarantees the DECLARED dev
+# dependencies -- a bare .venv can be missing ruff entirely, which is how
+# `make lint` came to fail with "No module named ruff" while `make test` worked.
+# Otherwise the tools are expected on PATH, which is what CI has after
+# `pip install -e '.[dev]'`.
+UV := $(shell command -v uv 2>/dev/null)
+ifeq ($(UV),)
+	PYTHON := python3
 	RUN_CMD :=
 else
-	# Local dev mode: use conda run
-	PYTHON := python
-	RUN_CMD := $(CONDA) run --prefix $(ENV_DIR)
+	PYTHON := uv run python
+	RUN_CMD := uv run
 endif
 
 .PHONY: help all env test clean lint format typecheck check coverage format-check
@@ -84,7 +99,7 @@ format:
 # Check formatting without modifying
 format-check:
 	@echo "Checking code formatting with ruff..."
-	@$(RUN_CMD) ruff format --check src/ tests/ examples/ project_template/
+	@$(RUN_CMD) ruff format --check $(LINT_PATHS)
 	@echo "Format check complete!"
 
 # Run type checker
@@ -93,10 +108,21 @@ typecheck type-check:
 	@$(RUN_CMD) mypy src/repro_tools
 	@echo "Type checking complete!"
 
+# LINT_PATHS is the single definition of scope, used by lint, format and
+# format-check alike, so the three cannot disagree about what they cover.
+#
+# It listed project_template/ until 2026-08-19, when that directory was deleted
+# as a dead duplicate of the real template repo — and ruff then failed with
+# "E902 No such file or directory", which is a lint error about a path, not about
+# code. CI went red on every commit for the next day while local runs passed,
+# because the local runs were typing their own path list rather than using this
+# one. What CI runs and what you can run must be the SAME STRING.
+LINT_PATHS ?= src/ tests/ examples/
+
 # Run linter
 lint:
 	@echo "Running ruff linter..."
-	@$(RUN_CMD) ruff check src/ tests/ examples/ project_template/
+	@$(RUN_CMD) ruff check $(LINT_PATHS)
 	@echo "Linting complete!"
 
 # Run all checks (lint + format-check + type-check)

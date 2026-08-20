@@ -35,19 +35,22 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install package in editable mode
+    # Install the DECLARED dev dependencies, rather than restating versions
+    # here. The pins live in pyproject.toml [project.optional-dependencies].dev
+    # and nowhere else, so a local `uv run` and this job get the same tools.
+    #
+    # They are pinned at all because an unpinned linter's verdict tracks its own
+    # release schedule rather than this repository: the same commit passed for
+    # months and then failed when ruff 0.16 stabilized RUF022. A check whose
+    # result can change while the code does not is only accidentally a check.
+    - name: Install package and dev dependencies
       run: |
-        pip install -e .
+        pip install -e '.[dev]'
 
     - name: Run code quality checks
       env:
         CI: true
       run: |
-        # Pinned. Unpinned, this step's verdict tracks ruff's release
-        # schedule rather than this repository: the same commit passed for
-        # months and then failed when ruff 0.16 stabilized RUF022. A check whose
-        # result can change while the code does not is only accidentally a check.
-        pip install 'ruff==0.16.3' mypy types-PyYAML types-docopt
         make lint
         make format-check
         make type-check
@@ -56,7 +59,7 @@ jobs:
       env:
         CI: true
       run: |
-        pip install pytest pytest-cov docopt
+        pip install docopt
         make test
 
     - name: Upload test results
