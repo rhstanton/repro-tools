@@ -4,8 +4,8 @@ An undefined make variable expands to the empty string. It is not an error, and
 make happily runs the result. So a shared target written as
 
     pre-submit:
-    	@echo "Running pre-submission checklist..."
-    	@$(REPRO_CHECK)
+        @echo "Running pre-submission checklist..."
+        @$(REPRO_CHECK)
 
 prints its banner, executes nothing, and exits 0 in any project that does not
 define REPRO_CHECK. project_template defines it, so the split that moved these
@@ -29,8 +29,18 @@ LIB = Path(__file__).resolve().parents[1] / "src/repro_tools/lib"
 LAYERS = ("tools.mk", "repro.mk", "git.mk", "layout.mk")
 
 # Variables a consuming project is expected to define itself.
-PROJECT_PROVIDED = {"PYTHON", "JULIA", "STATA", "NOTEBOOK", "DATA", "ANALYSES",
-                    "MAKE", "CURDIR", "MAKEFILE_LIST", "REPRO_LIB_DIR"}
+PROJECT_PROVIDED = {
+    "PYTHON",
+    "JULIA",
+    "STATA",
+    "NOTEBOOK",
+    "DATA",
+    "ANALYSES",
+    "MAKE",
+    "CURDIR",
+    "MAKEFILE_LIST",
+    "REPRO_LIB_DIR",
+}
 # Deliberate pass-throughs: the user supplies them on the command line
 # (`make template-diff ARGS="--apply"`) and empty is the correct default.
 PASS_THROUGH = {"ARGS"}
@@ -46,9 +56,20 @@ def test_every_variable_used_in_a_recipe_has_a_default(layer):
     for line in text.split("\n"):
         if line.startswith("\t"):
             used |= set(VAR.findall(line))
-    undefaulted = sorted(used - defaulted - PROJECT_PROVIDED - PASS_THROUGH - {"OUT_FIG_DIR",
-                         "OUT_TBL_DIR", "OUT_PROV_DIR", "OUT_LOG_DIR",
-                         "OUT_EXEC_NB_DIR", "JULIA_NUM_THREADS"})
+    undefaulted = sorted(
+        used
+        - defaulted
+        - PROJECT_PROVIDED
+        - PASS_THROUGH
+        - {
+            "OUT_FIG_DIR",
+            "OUT_TBL_DIR",
+            "OUT_PROV_DIR",
+            "OUT_LOG_DIR",
+            "OUT_EXEC_NB_DIR",
+            "JULIA_NUM_THREADS",
+        }
+    )
     assert not undefaulted, (
         f"{layer} runs $({'), $('.join(undefaulted)}) with no ?= default; "
         "in a project that does not define it, the recipe executes the empty "
@@ -70,7 +91,8 @@ def test_an_undefined_command_variable_would_pass_silently(tmp_path):
     (tmp_path / "Makefile").write_text(
         'demo:\n\t@echo "Running the check..."\n\t@$(NEVER_DEFINED)\n'
     )
-    out = subprocess.run(["make", "demo"], cwd=tmp_path, capture_output=True,
-                         text=True, timeout=60)
+    out = subprocess.run(
+        ["make", "demo"], cwd=tmp_path, capture_output=True, text=True, timeout=60
+    )
     assert out.returncode == 0
     assert "Running the check..." in out.stdout
