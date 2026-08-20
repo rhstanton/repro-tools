@@ -96,13 +96,31 @@ test-cov:
 
 # Code Quality
 
+# The exact commands, defined once and both ECHOED and RUN.
+#
+# Recipes here are silenced with @, so `make lint` printed "Running linter
+# (ruff)..." and nothing else. That is fine at a terminal and bad in a CI log:
+# once CI calls the make target instead of restating the command -- which is the
+# point, so that scope lives in one place -- the log stops saying what actually
+# ran, and a reader cannot tell which paths were covered.
+#
+# Echoing the same variable that is executed keeps one definition and restores
+# the log. Do not inline these commands into the recipes again.
+LINT_CMD         = $(PYTHON) -m ruff check $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)'
+FORMAT_CHECK_CMD = $(PYTHON) -m ruff format --check $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)'
+FORMAT_FIX_CMD   = $(PYTHON) -m ruff check --fix $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)'
+FORMAT_CMD       = $(PYTHON) -m ruff format $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)'
+TYPECHECK_CMD    = $(PYTHON) -m mypy $(TYPECHECK_PATHS) --exclude '$(RUFF_EXCLUDE)'
+
+
 .PHONY: lint
 lint:
 	@echo "Running linter (ruff)..."
-	@$(PYTHON) -m ruff check $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)' || { \
+	@echo "  $$ $(LINT_CMD)"
+	@$(LINT_CMD) || { \
 		echo ""; \
 		echo "Linting failed. To see details:"; \
-		echo "  $(PYTHON) -m ruff check $(LINT_PATHS)"; \
+		echo "  $(LINT_CMD)"; \
 		echo ""; \
 		echo "To auto-fix some issues:"; \
 		echo "  make format"; \
@@ -114,16 +132,19 @@ lint:
 format:
 	@echo "Auto-formatting code..."
 	@echo "  1. Running ruff fixes (import sorting, trailing whitespace, etc.)..."
-	@$(PYTHON) -m ruff check --fix $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)' || true
+	@echo "     $$ $(FORMAT_FIX_CMD)"
+	@$(FORMAT_FIX_CMD) || true
 	@echo "  2. Running ruff format..."
-	@$(PYTHON) -m ruff format $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)' || true
+	@echo "     $$ $(FORMAT_CMD)"
+	@$(FORMAT_CMD) || true
 	@echo ""
 	@echo "✓ Formatting complete"
 
 .PHONY: format-check
 format-check:
 	@echo "Checking code formatting..."
-	@$(PYTHON) -m ruff format --check $(LINT_PATHS) --exclude '$(RUFF_EXCLUDE)' || { \
+	@echo "  $$ $(FORMAT_CHECK_CMD)"
+	@$(FORMAT_CHECK_CMD) || { \
 		echo ""; \
 		echo "Ruff formatting check failed. Run:"; \
 		echo "  make format"; \
@@ -135,7 +156,8 @@ format-check:
 .PHONY: type-check
 type-check:
 	@echo "Running type checker (mypy)..."
-	@$(PYTHON) -m mypy $(TYPECHECK_PATHS) --exclude '$(RUFF_EXCLUDE)' || { \
+	@echo "  $$ $(TYPECHECK_CMD)"
+	@$(TYPECHECK_CMD) || { \
 		echo ""; \
 		echo "Type checking failed. Run for details:"; \
 		echo "  $(PYTHON) -m mypy $(TYPECHECK_PATHS)"; \
