@@ -42,10 +42,16 @@ PROJECT_PROVIDED = {
     "REPRO_LIB_DIR",
 }
 # Deliberate pass-throughs: the user supplies them on the command line
-# (`make template-diff ARGS="--apply"`) and empty is the correct default.
-PASS_THROUGH = {"ARGS"}
+# (`make template-diff ARGS="--apply"`, `make bump-version VERSION=1.2.0`) and
+# empty is the correct default. Each recipe using one checks it is non-empty and
+# prints usage -- which is the difference between a required argument and the
+# silent-empty-string defect the rest of this file is about.
+PASS_THROUGH = {"ARGS", "VERSION"}
 VAR = re.compile(r"\$\(([A-Z][A-Z0-9_]*)\)")
-DEFAULT = re.compile(r"^([A-Z][A-Z0-9_]*)\s*\?=", re.M)
+# Any assignment counts as defined -- ?=, := or =. Recognizing only ?= flagged
+# `REPRO_TOOLS_MK_DIR := $(dir ...)`, which is not a default but a computed
+# value that must be read immediately, as though it had never been set.
+DEFAULT = re.compile(r"^([A-Z][A-Z0-9_]*)\s*[?:+]?=", re.M)
 
 
 @pytest.mark.parametrize("layer", LAYERS)

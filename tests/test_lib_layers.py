@@ -64,8 +64,8 @@ def test_the_layers_cover_the_documented_target_count():
     total = set()
     for name in LAYERS:
         total |= targets_in(name)
-    assert len(total) == 30, (
-        f"expected 30 shared targets, found {len(total)}: {sorted(total)}"
+    assert len(total) == 31, (
+        f"expected 31 shared targets, found {len(total)}: {sorted(total)}"
     )
 
 

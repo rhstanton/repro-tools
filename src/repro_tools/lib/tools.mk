@@ -158,3 +158,33 @@ dryrun:
 	@echo "Dry run - showing what would be built:"
 	@echo ""
 	@$(MAKE) -n all 2>&1 | grep -E '^(Building|Running|======|✓)' || true
+
+# ==============================================================================
+# Version bumping
+# ==============================================================================
+
+# Set the version everywhere it appears, in one step, and refuse a version that
+# collides with an existing release tag.
+#
+# Shared rather than per-project because the projects WITHOUT a bump helper are
+# exactly the ones that drifted: repro-tools was tagged v0.3.0 through v0.3.3 on
+# 2026-01-28 without any of them updating pyproject.toml, which sat at 0.2.0
+# throughout. `git tag` succeeds whether or not anything was bumped, so nothing
+# ever surfaced it.
+#
+# Resolved from THIS file, not from $(REPRO_LIB_DIR): that variable is defined in
+# common.mk, and a project including tools.mk on its own would not have it. A
+# layer reaching past its own contract is the failure this split exists to
+# prevent, and tests/test_lib_layers.py checks for exactly that.
+#
+# `:=` because $(MAKEFILE_LIST) grows as make parses; it must be read now, while
+# this file is the last entry.
+REPRO_TOOLS_MK_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+# BUMP_SCRIPT is overridable for a project that keeps its own copy.
+BUMP_SCRIPT ?= $(REPRO_TOOLS_MK_DIR)../../../scripts/bump_version.py
+
+.PHONY: bump-version
+bump-version:
+	@test -n "$(VERSION)" || { echo "Usage: make bump-version VERSION=X.Y.Z"; exit 1; }
+	@REPRO_BUMP_ROOT="$(REPO_ROOT)" python3 "$(BUMP_SCRIPT)" "$(VERSION)" --apply
