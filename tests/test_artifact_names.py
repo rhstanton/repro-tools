@@ -118,3 +118,59 @@ def test_an_empty_analyses_list_prints_nothing(tmp_path):
         "\t@$(foreach a,$(ANALYSES),echo $(a);)\n"
     )
     assert _checker(tmp_path)._artifact_names() == []
+
+
+def _touch(p):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("x")
+
+
+def test_artifacts_are_found_one_directory_down(tmp_path):
+    """Output trees are not always flat.
+
+    project_template writes output/figures/<name>.pdf. fire groups by analysis
+    family — output/figures/housing/<name>.pdf — and a checker looking only at
+    the top level reported all 43 of its artifacts missing while they sat one
+    directory down. "Missing" is a confident, wrong answer, worse here than no
+    answer at all.
+    """
+    from repro_tools.presubmit import PreSubmitChecker
+
+    out = tmp_path / "output"
+    _touch(out / "figures" / "housing" / "alpha.pdf")
+    _touch(out / "tables" / "housing" / "alpha.tex")
+    _touch(out / "provenance" / "housing" / "alpha.yml")
+
+    c = PreSubmitChecker(tmp_path)
+    for kind, ext in (("figures", "pdf"), ("tables", "tex"), ("provenance", "yml")):
+        assert c._artifact_exists(out, kind, "alpha", ext)
+
+
+def test_a_flat_layout_still_works(tmp_path):
+    from repro_tools.presubmit import PreSubmitChecker
+
+    out = tmp_path / "output"
+    _touch(out / "figures" / "beta.pdf")
+    c = PreSubmitChecker(tmp_path)
+    assert c._artifact_exists(out, "figures", "beta", "pdf")
+
+
+def test_a_genuinely_missing_artifact_is_still_missing(tmp_path):
+    """Guard the guard: a lookup that finds everything reports nothing."""
+    from repro_tools.presubmit import PreSubmitChecker
+
+    out = tmp_path / "output"
+    _touch(out / "figures" / "housing" / "alpha.pdf")
+    c = PreSubmitChecker(tmp_path)
+    assert not c._artifact_exists(out, "figures", "gamma", "pdf")
+
+
+def test_the_search_does_not_walk_the_whole_tree(tmp_path):
+    """Depth 1, not rglob: an output tree with a cache/ under it makes an
+    unbounded walk slow, and nothing files artifacts three levels down."""
+    from repro_tools.presubmit import PreSubmitChecker
+
+    out = tmp_path / "output"
+    _touch(out / "figures" / "a" / "b" / "deep.pdf")
+    c = PreSubmitChecker(tmp_path)
+    assert not c._artifact_exists(out, "figures", "deep", "pdf")

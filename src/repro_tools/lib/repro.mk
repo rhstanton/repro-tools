@@ -12,7 +12,26 @@
 # REPORT_OUTPUT is the one path this layer names. Parameterized for the same
 # reason as tools.mk's: a shared target that writes to a directory the consuming
 # project does not have fails in that project, not here.
+# The repository root. Defaulted because a layer may be included on its own:
+# `?=` in each file that uses it is idempotent, and the alternative -- assuming
+# some other layer defined it -- is how $(REPO_ROOT) came to be passed to
+# `--repo-root` as an empty argument in fire, which defines no such variable.
+REPO_ROOT ?= $(CURDIR)
+
 REPORT_OUTPUT ?= output/replication_report.html
+
+# The repro_tools invocations these targets run. Defaulted here, not assumed.
+#
+# repro.mk used $(REPRO_CHECK) with no default. project_template happens to
+# define it, so nothing failed there -- but fire, which does not, ran
+# `make pre-submit`, printed "Running pre-submission checklist...", executed the
+# empty string, and exited 0. A pre-submission check that silently runs nothing
+# and reports success is the worst instance of that failure this project has
+# produced, and it was introduced by the very split meant to make these targets
+# portable. An undefined make variable expands to nothing; it is not an error.
+REPRO_CHECK   ?= $(PYTHON) -m repro_tools.cli check
+REPRO_COMPARE ?= $(PYTHON) -m repro_tools.cli compare
+REPRO_REPORT  ?= $(PYTHON) -m repro_tools.cli report
 
 .PHONY: diff-outputs
 diff-outputs:

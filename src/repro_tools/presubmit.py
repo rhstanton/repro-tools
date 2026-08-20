@@ -246,6 +246,27 @@ class PreSubmitChecker:
                 )
             )
 
+    @staticmethod
+    def _artifact_exists(output_dir, kind: str, name: str, ext: str) -> bool:
+        """Is this artifact present, at the top of output/<kind>/ or below it?
+
+        The direct path is checked first, then one level of subdirectory. A flat
+        output/figures/<name>.pdf is the template's layout; fire groups by
+        analysis family, output/figures/housing/<name>.pdf, and looking only at
+        the top level reported all 43 of its artifacts missing while they sat one
+        directory down.
+
+        Globbing rather than configuring: the artifact NAME is what the checker
+        was given, and a project that files its outputs in subdirectories has not
+        thereby renamed them. rglob is deliberately avoided -- an unbounded walk
+        of an output tree with a cache/ in it is slow, and depth 1 covers the
+        grouping projects actually use.
+        """
+        direct = output_dir / kind / f"{name}.{ext}"
+        if direct.exists():
+            return True
+        return any((output_dir / kind).glob(f"*/{name}.{ext}"))
+
     def check_data_files(self):
         """Check data files exist and match checksums."""
         print("📊 Checking Data Files...")
@@ -416,11 +437,14 @@ class PreSubmitChecker:
 
         missing = []
         for artifact in artifacts:
-            fig = output_dir / "figures" / f"{artifact}.pdf"
-            tbl = output_dir / "tables" / f"{artifact}.tex"
-            prov = output_dir / "provenance" / f"{artifact}.yml"
-
-            if not (fig.exists() and tbl.exists() and prov.exists()):
+            if not all(
+                self._artifact_exists(output_dir, kind, artifact, ext)
+                for kind, ext in (
+                    ("figures", "pdf"),
+                    ("tables", "tex"),
+                    ("provenance", "yml"),
+                )
+            ):
                 missing.append(artifact)
 
         if not missing:

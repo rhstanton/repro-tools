@@ -28,7 +28,30 @@ COV_TARGET ?= scripts
 LINT_PATHS ?= .
 TYPECHECK_PATHS ?= run_analysis.py shared/*.py
 RUFF_EXCLUDE ?= lib/repro-tools
+# The repository root. Defaulted because a layer may be included on its own:
+# `?=` in each file that uses it is idempotent, and the alternative -- assuming
+# some other layer defined it -- is how $(REPO_ROOT) came to be passed to
+# `--repo-root` as an empty argument in fire, which defines no such variable.
+REPO_ROOT ?= $(CURDIR)
+
 SYSINFO_OUTPUT ?= output/system_info.yml
+REPRO_SYSINFO  ?= $(PYTHON) -m repro_tools.cli sysinfo
+
+# What `make check` runs. A knob because `check` means "the gate CI enforces",
+# and that gate is not the same everywhere: fire's CI runs ruff check, ruff
+# format --check and mypy, but invokes pytest as a separate step, so inheriting
+# a `check` that also runs the suite would silently redefine what the target
+# asserts. Listing the prerequisites here lets a project say which gate it has
+# without overriding the recipe (and without make's "overriding recipe" warning,
+# which buries real ones).
+CHECK_DEPS ?= lint format-check type-check test
+
+# What must hold before the test targets run. Empty by default; a project with a
+# environment-readiness target names it here and gets a clear "run make
+# environment" instead of a confusing pytest import error. fire sets
+# check-environment. Same reasoning as CHECK_DEPS: expressing the difference as a
+# prerequisite list beats overriding the recipe, which make resolves silently.
+TEST_DEPS ?=
 
 .PHONY: system-info
 system-info:
@@ -48,7 +71,7 @@ system-info:
 # A suite that takes seven minutes does not get run between edits; one that
 # takes one does. CI runs `test`, so nothing is skipped where it matters.
 .PHONY: test-fast
-test-fast:
+test-fast: $(TEST_DEPS)
 	@echo "Running fast tests (deselecting -m slow)..."
 	@$(PYTHON) -m pytest $(TEST_PATHS) -q -m "not slow"
 	@echo ""
@@ -56,7 +79,7 @@ test-fast:
 	@echo ""
 
 .PHONY: test
-test:
+test: $(TEST_DEPS)
 	@echo "Running test suite..."
 	@$(PYTHON) -m pytest $(TEST_PATHS) -v
 	@echo ""
@@ -121,16 +144,13 @@ type-check:
 	@echo "✓ Type checking passed"
 
 .PHONY: check
-check: lint format-check type-check test
+check: $(CHECK_DEPS)
 	@echo ""
 	@echo "================================================"
 	@echo "  ✓ All quality checks passed!"
 	@echo "================================================"
 	@echo ""
-	@echo "  ✓ Linting (ruff)"
-	@echo "  ✓ Formatting (ruff)"
-	@echo "  ✓ Type checking (mypy)"
-	@echo "  ✓ Tests (pytest)"
+	@echo "  Ran: $(CHECK_DEPS)"
 	@echo ""
 
 .PHONY: dryrun
