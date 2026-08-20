@@ -27,6 +27,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Example files generated based on selected languages
   - Environment setup targets properly sequenced
 
+## [0.3.0] - 2026-08-19
+
+Eighty-seven commits since 0.2.0 (January), during which the declared version
+never moved. Consumers pin by submodule commit, so nothing broke — but a package
+claiming 0.2.0 while shipping substantially different behavior is a false
+statement that costs nothing to make and something to believe.
+
+### Added
+- `lib/` is split by contract into `tools.mk` ($(PYTHON) only), `repro.mk`
+  (+ the package), `git.mk` (git only) and `layout.mk` (project shape).
+  `common.mk` includes all four, so existing consumers are unaffected. The split
+  is what let a differently-shaped project adopt part of the machinery: `include`
+  is all-or-nothing, and twelve of the thirty targets assumed one project shape.
+- `list-analyses-names`: bare artifact names, one per line, so `repro-check` can
+  ask make instead of regexing a Makefile.
+- `lib-path` CLI command, so a Makefile can locate the shared machinery whether
+  repro-tools is vendored or installed.
+
+### Fixed
+- `cli.py` had no `__main__` dispatcher, so `python -m repro_tools.cli publish`
+  ignored its arguments and exited 0. The publish/verify surface was unreachable.
+- Shared targets whose command variable was undefined ran the empty string and
+  passed. `make pre-submit` in a project that did not define `REPRO_CHECK`
+  printed its banner, did nothing, and reported success.
+- `$(REPO_ROOT)` was passed to `--repo-root` with no default.
+- The artifact check assumed a flat `output/<kind>/<name>` and reported every
+  artifact missing in projects that group outputs into subdirectories.
+- `init-submodules` swallowed stderr and the exit status; its message now names
+  the likeliest cause first (a non-empty path from a copied working tree) rather
+  than sending the reader to check working credentials.
+- `lib/*.mk` and `lib/*.sh` now ship in the wheel. Without the package-data
+  stanza setuptools packaged only `*.py`, so installing repro-tools gave you an
+  empty `lib/` — invisible to the one consumer that vendors the submodule.
+
+### Removed
+- This repository's own `project_template/` directory: a second scaffold
+  duplicating the real template repo, referenced by no code, not packaged, not
+  used by `template-diff`, and still being maintained by hand.
+
 ## [0.2.0] - 2026-01-18
 
 ### Added
@@ -55,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial publishing workflows
 - Core git state tracking
 
-[Unreleased]: https://github.com/rhstanton/repro-tools/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/rhstanton/repro-tools/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/rhstanton/repro-tools/releases/tag/v0.3.0
 [0.2.0]: https://github.com/rhstanton/repro-tools/releases/tag/v0.2.0
 [0.1.0]: https://github.com/rhstanton/repro-tools/releases/tag/v0.1.0
