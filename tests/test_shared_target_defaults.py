@@ -52,10 +52,16 @@ DEFAULT = re.compile(r"^([A-Z][A-Z0-9_]*)\s*\?=", re.M)
 def test_every_variable_used_in_a_recipe_has_a_default(layer):
     text = (LIB / layer).read_text()
     defaulted = set(DEFAULT.findall(text))
+    # Every non-comment line, not only recipes. A variable can also appear in a
+    # prerequisite list -- `check: $(CHECK_DEPS)`, `test: $(TEST_DEPS)` -- and an
+    # undefined one there silently reduces the target to no prerequisites, which
+    # is the same defect wearing different clothes: the gate still passes, having
+    # checked less than it claims.
     used = set()
     for line in text.split("\n"):
-        if line.startswith("\t"):
-            used |= set(VAR.findall(line))
+        if line.lstrip().startswith("#"):
+            continue
+        used |= set(VAR.findall(line))
     undefaulted = sorted(
         used
         - defaulted
