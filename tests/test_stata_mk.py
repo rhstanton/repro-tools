@@ -83,7 +83,7 @@ class TestStructure:
 
         Anywhere else it is a hard-coded binary a project cannot override --
         which matters because Stata ships as stata-mp, stata-se and stata-be,
-        and a site licence decides which one exists.
+        and a site license decides which one exists.
         """
         offenders = [
             line

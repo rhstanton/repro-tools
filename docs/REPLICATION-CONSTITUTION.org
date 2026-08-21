@@ -23,7 +23,7 @@ A Julia Manifest pins packages only for the Julia version it was resolved with; 
 
 The rule stands for **projects**, which know their platforms. It cannot bind a template, which does not. The template ships the machinery — the manifest is restored rather than deleted during install, and the build reports via git whether the pin survived — and instructs each project to commit its own.
 
-The general form is worth stating alongside the 2026-08-11 lesson below: *an environment file that is gitignored is not a pin* — and equally, **a pin that the platform cannot honour is not a pin either, it is a warning that fires every time.**
+The general form is worth stating alongside the 2026-08-11 lesson below: *an environment file that is gitignored is not a pin* — and equally, **a pin that the platform cannot honor is not a pin either, it is a warning that fires every time.**
 
 * Purpose, Scope, and Status of This Document
 
