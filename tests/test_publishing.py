@@ -491,7 +491,10 @@ class TestPublishFiles:
         )
         subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Add topic"], cwd=repo, check=True, capture_output=True
+            ["git", "commit", "-m", "Add topic"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
         )
 
         paper_dir = repo / "paper"
