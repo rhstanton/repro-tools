@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `sample_stata.do` for Stata
   - `README.md` with usage instructions
 
+### Fixed
+- **Publishing**: `publish_files` no longer wipes the `files` entries already in
+  `provenance.yml`. It reset `prov["files"]` on every call, so when several
+  projects publish into one paper root (one call per lecture topic, say), each
+  publish deleted every other project's provenance. Existing entries are now
+  kept and updated; regression test `test_separate_publishes_accumulate`.
+
 ### Changed
 - **Project Scaffolding**: Enhanced multi-language support
   - All three languages (Python, Julia, Stata) fully integrated

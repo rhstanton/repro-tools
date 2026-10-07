@@ -312,8 +312,11 @@ def publish_files(
     # See the note in publish_analyses: this must be refreshed, not defaulted.
     prov["analysis_git"] = gitinfo
 
-    # File-level publishing: clear analysis-level tracking
-    prov["files"] = {}
+    # File-level publishing: clear analysis-level tracking, but keep the file
+    # entries already recorded. Several projects (e.g. one per lecture topic)
+    # publish into the same paper_root, each with its own call; resetting
+    # "files" here made every publish delete the provenance of all the others.
+    prov.setdefault("files", {})
     if "artifacts" in prov:
         del prov["artifacts"]
 

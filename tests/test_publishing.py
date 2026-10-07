@@ -450,6 +450,28 @@ class TestPublishFiles:
         assert "files" in prov
         assert "figures/test_analysis.pdf" in prov["files"]
 
+    def test_separate_publishes_accumulate(self, analysis_artifacts):
+        """A second publish_files call must not drop the first call's entries."""
+        repo = analysis_artifacts["repo"]
+        paper_dir = repo / "paper"
+
+        publish_files(
+            project_root=repo,
+            paper_root=paper_dir,
+            file_paths=[analysis_artifacts["figure"]],
+            verbose=False,
+        )
+        publish_files(
+            project_root=repo,
+            paper_root=paper_dir,
+            file_paths=[analysis_artifacts["table"]],
+            verbose=False,
+        )
+
+        prov = yaml.safe_load((paper_dir / "provenance.yml").read_text())
+        assert "figures/test_analysis.pdf" in prov["files"]
+        assert "tables/test_analysis.tex" in prov["files"]
+
     def test_publish_file_outside_output_dir(self, analysis_artifacts):
         """Test error when publishing file outside output/."""
         repo = analysis_artifacts["repo"]
