@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   projects publish into one paper root (one call per lecture topic, say), each
   publish deleted every other project's provenance. Existing entries are now
   kept and updated; regression test `test_separate_publishes_accumulate`.
+- **Publishing**: a published file is linked to its build record again when
+  the project is a subdirectory of the repository. Build records store paths
+  relative to `repo_root` (`path_convention: relative-to-repo-root-where-possible`),
+  but `_infer_analysis_name` resolved them against `project_root`, so every
+  such file was published with `analysis_name: null` and no build record. It
+  now tries both roots; regression test
+  `test_build_record_found_for_project_in_subdirectory`.
 
 ### Changed
 - **Project Scaffolding**: Enhanced multi-language support

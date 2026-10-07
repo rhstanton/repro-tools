@@ -400,13 +400,21 @@ def _infer_analysis_name(output_path: Path, project_root: Path) -> str | None:
             else:
                 output_items = outputs
 
+            # Build records written with path_convention
+            # "relative-to-repo-root-where-possible" store paths relative to the
+            # record's repo_root, which differs from project_root whenever the
+            # project lives in a subdirectory of the repository (one analysis
+            # topic per directory, say). Try both roots.
+            roots = [project_root]
+            if meta.get("repo_root"):
+                roots.append(Path(meta["repo_root"]))
+            target = output_path.resolve()
+
             for out_info in output_items:
                 out_path = out_info.get("path", "")
                 if not out_path:
                     continue
-                # Resolve relative paths from project_root
-                resolved_out = (project_root / out_path).resolve()
-                if resolved_out == output_path.resolve():
+                if any((root / out_path).resolve() == target for root in roots):
                     return prov_file.stem  # The analysis name
         except Exception:
             continue

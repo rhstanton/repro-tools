@@ -472,6 +472,42 @@ class TestPublishFiles:
         assert "figures/test_analysis.pdf" in prov["files"]
         assert "tables/test_analysis.tex" in prov["files"]
 
+    def test_build_record_found_for_project_in_subdirectory(self, temp_git_repo):
+        """Repo-relative build-record paths must still link a published file
+        to its analysis when project_root is a subdirectory of repo_root."""
+        repo = temp_git_repo
+        project = repo / "analysis" / "topic"
+        (project / "output" / "figures").mkdir(parents=True)
+        (project / "output" / "provenance").mkdir(parents=True)
+        fig = project / "output" / "figures" / "plot.png"
+        fig.write_text("fake png")
+        write_build_record(
+            out_meta=project / "output" / "provenance" / "topic.yml",
+            artifact_name="topic",
+            command=["python", "build.py"],
+            repo_root=repo,
+            inputs=[],
+            outputs=[fig],
+        )
+        subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Add topic"], cwd=repo, check=True, capture_output=True
+        )
+
+        paper_dir = repo / "paper"
+        publish_files(
+            project_root=project,
+            paper_root=paper_dir,
+            file_paths=[fig],
+            dest_subdir="topic",
+            verbose=False,
+        )
+
+        prov = yaml.safe_load((paper_dir / "provenance.yml").read_text())
+        entry = prov["files"]["topic/plot.png"]
+        assert entry["analysis_name"] == "topic"
+        assert entry["build_record"] is not None
+
     def test_publish_file_outside_output_dir(self, analysis_artifacts):
         """Test error when publishing file outside output/."""
         repo = analysis_artifacts["repo"]
