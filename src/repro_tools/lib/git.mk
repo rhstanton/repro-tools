@@ -112,8 +112,16 @@ update-environment: update-submodules
 	@echo "📦 Reinstalling Python environment with updated repro-tools..."
 	$(MAKE) -C env python-env
 	@echo ""
-	@echo "📦 Reinstalling Julia packages..."
-	$(MAKE) -C env julia-install-via-python
+	@# Only where the project has a Julia install target. fire removed Julia on
+	@# 2026-10-26, and its `make update-environment` then failed here, after the
+	@# Python rebuild had already succeeded. Checked by grepping env/Makefile
+	@# rather than asking make: `make -n` still executes $$(MAKE) recipe lines.
+	@if grep -q '^julia-install-via-python:' env/Makefile 2>/dev/null; then \
+		echo "📦 Reinstalling Julia packages..."; \
+		$(MAKE) -C env julia-install-via-python; \
+	else \
+		echo "(No Julia install target in env/Makefile; nothing to reinstall for Julia.)"; \
+	fi
 	@echo ""
 	@echo "✓ Environment updated!"
 	@echo ""

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`make update-environment` no longer assumes Julia.** It ran `make -C env julia-install-via-python` unconditionally, so in a project without Julia (fire, since 2026-10-26) it failed after the Python rebuild had succeeded. The step now runs only when `env/Makefile` defines that target.
+
 ### Added
 - **Project Scaffolding**: Complete Stata support in `scaffold.py`
   - Generated `env/stata-packages.txt` for package management
